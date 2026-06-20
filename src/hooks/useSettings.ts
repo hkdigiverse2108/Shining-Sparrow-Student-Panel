@@ -1,0 +1,37 @@
+import { useQuery, useMutation } from '@tanstack/react-query';
+import settingsService from '../services/settings.service';
+import type { ContactUsPayload } from '../services/settings.service';
+
+export const useSettings = () => {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: () => settingsService.getSettings(),
+  });
+};
+
+export const useHeroBanners = (params?: { page?: number; limit?: number; type?: string }) => {
+  return useQuery({
+    queryKey: ['hero-banners', params],
+    queryFn: () => settingsService.getHeroBanners(params),
+  });
+};
+
+export const useTestimonials = (params?: { page?: number; limit?: number; type?: string }) => {
+  return useQuery({
+    queryKey: ['testimonials', params],
+    queryFn: () => settingsService.getTestimonials(params),
+  });
+};
+
+export const useFAQs = (params?: { page?: number; limit?: number; search?: string; type?: string; learningCatalogFilter?: string }) => {
+  return useQuery({
+    queryKey: ['faqs', params],
+    queryFn: () => settingsService.getFAQs(params),
+  });
+};
+
+export const useContactUs = () => {
+  return useMutation({
+    mutationFn: (payload: ContactUsPayload) => settingsService.contactUs(payload),
+  });
+};

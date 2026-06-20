@@ -1,0 +1,230 @@
+import React, { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useWorkshop } from '../hooks/useWorkshops';
+import { useWorkshopCurriculums } from '../hooks/useLMS';
+import { Loader } from '../components/Loader';
+import { Play, Download, FileText, ArrowLeft, Video } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { pageChildVariants } from '../components/PageTransition';
+
+// Helper to parse YouTube URLs to embed URLs
+const getEmbedUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('youtube.com/embed/')) return url;
+  
+  let videoId = '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  
+  if (match && match[2].length === 11) {
+    videoId = match[2];
+  }
+  
+  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0` : url;
+};
+
+interface WorkshopCurriculum {
+  _id: string;
+  title: string;
+  videoLink: string;
+  description: string;
+  attachment?: string;
+  duration?: string;
+  date?: string;
+}
+
+export const WorkshopLMSPage = () => {
+  const { workshopId } = useParams<{ workshopId: string }>();
+
+  // Queries
+  const { data: workshopRes, isLoading: workshopLoading } = useWorkshop(workshopId || '');
+  const workshop = workshopRes?.data;
+
+  const { data: curriculumsRes, isLoading: curriculumsLoading } = useWorkshopCurriculums(workshopId || '');
+  const rawCurriculums = curriculumsRes?.data?.workshop_curriculums || curriculumsRes?.data;
+  const curriculums = React.useMemo(() => rawCurriculums || [], [rawCurriculums]) as WorkshopCurriculum[];
+
+  // Active Video State
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [activeVideoTitle, setActiveVideoTitle] = useState<string | null>(null);
+  const [activeVideoDesc, setActiveVideoDesc] = useState<string | null>(null);
+  const [activeAttachment, setActiveAttachment] = useState<string | null>(null);
+
+  // Compute active video details with first curriculum as fallback
+  const currentVideoUrl = activeVideoUrl ?? (curriculums.length > 0 ? curriculums[0].videoLink : null);
+  const currentVideoTitle = activeVideoTitle ?? (curriculums.length > 0 ? curriculums[0].title : null);
+  const currentVideoDesc = activeVideoDesc ?? (curriculums.length > 0 ? curriculums[0].description : null);
+  const currentAttachment = activeAttachment ?? (curriculums.length > 0 ? curriculums[0].attachment : null);
+
+  if (workshopLoading || curriculumsLoading) {
+    return <Loader />;
+  }
+
+  if (!workshop) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-xl font-bold text-slate-800 dark:text-white">Workshop not found</h2>
+        <p className="text-slate-500 mt-2">Could not retrieve workshop contents.</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      variants={pageChildVariants}
+      initial="initial"
+      animate="animate"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6"
+    >
+      
+      {/* Back button and workshop title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b dark:border-slate-800 pb-5">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard"
+            className="p-2 border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </Link>
+          <div>
+            <h1 className="font-display font-extrabold text-2xl text-slate-900 dark:text-white leading-tight">
+              {workshop.title}
+            </h1>
+            <p className="text-xs text-brand-primary dark:text-brand-secondary font-semibold mt-0.5">
+              {workshop.subTitle || 'Chronological Lecture Stream'}
+            </p>
+          </div>
+        </div>
+
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary dark:text-brand-secondary self-start sm:self-auto">
+          🎥 Linear Access
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column: Player & Current Details */}
+        <div className="lg:col-span-2 space-y-6">
+          {currentVideoUrl ? (
+            <div className="space-y-6">
+              {/* Video Player */}
+              <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border dark:border-slate-800 shadow-lg">
+                {currentVideoUrl.includes('youtube.com') || currentVideoUrl.includes('youtu.be') ? (
+                  <iframe
+                    src={getEmbedUrl(currentVideoUrl)}
+                    title={currentVideoTitle || 'Workshop video'}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <video
+                    src={currentVideoUrl}
+                    controls
+                    className="absolute inset-0 w-full h-full"
+                  ></video>
+                )}
+              </div>
+
+              {/* Lecture details */}
+              <div className="space-y-4">
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-slate-900 dark:text-white">
+                    {currentVideoTitle}
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2">
+                    {currentVideoDesc}
+                  </p>
+                </div>
+
+                {/* Download Attachment if exists */}
+                {currentAttachment && (
+                  <div className="ui-card p-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-brand-primary/20 dark:bg-brand-primary/30 text-brand-primary dark:text-brand-secondary rounded-xl">
+                        <FileText size={18} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Workshop Materials</span>
+                        <span className="block text-[10px] text-slate-400">Download worksheets & study notes</span>
+                      </div>
+                    </div>
+                    <a
+                      href={currentAttachment}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ui-button-outline p-2"
+                    >
+                      <Download size={16} />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="aspect-video w-full rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-center border dark:border-slate-800 shadow-sm">
+              <div className="space-y-2 p-6 max-w-sm">
+                <Video size={36} className="text-slate-300 mx-auto animate-pulse" />
+                <h3 className="font-bold text-slate-700 dark:text-slate-300">Classroom Stream Empty</h3>
+                <p className="text-xs text-slate-400 leading-normal">This workshop doesn't contain any video lectures yet. Check back soon!</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Workshop Curriculum List */}
+        <div className="lg:col-span-1 space-y-4">
+          <h3 className="font-display font-extrabold text-lg text-slate-900 dark:text-white">
+            Workshop Lectures ({curriculums.length})
+          </h3>
+          
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+            {curriculums.length > 0 ? (
+              curriculums.map((curr: WorkshopCurriculum, index: number) => {
+                const isActive = currentVideoUrl === curr.videoLink;
+                return (
+                  <motion.button
+                    key={curr._id || index}
+                    onClick={() => {
+                      setActiveVideoUrl(curr.videoLink);
+                      setActiveVideoTitle(curr.title);
+                      setActiveVideoDesc(curr.description);
+                      setActiveAttachment(curr.attachment || null);
+                    }}
+                    whileHover={{ x: 2 }}
+                    className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left transition-all ${
+                      isActive
+                        ? 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:border-brand-primary/45 dark:text-brand-secondary'
+                        : 'bg-white dark:bg-[#120b08] border-slate-100 dark:border-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`p-2.5 rounded-xl shrink-0 ${isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 dark:bg-slate-900'}`}>
+                      <Play size={14} className="fill-current" />
+                    </div>
+                    
+                    <div className="min-w-0 space-y-1">
+                      <span className="block text-xs font-extrabold line-clamp-1">
+                        Part {index + 1}: {curr.title}
+                      </span>
+                      <span className="block text-[10px] text-slate-400 line-clamp-1">
+                        {curr.duration || 'Flexible duration'} {curr.date ? `• ${new Date(curr.date).toLocaleDateString()}` : ''}
+                      </span>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {curr.description}
+                      </p>
+                    </div>
+                  </motion.button>
+                );
+              })
+            ) : (
+              <div className="ui-card border border-dashed text-slate-400 text-center py-10 text-xs">
+                No syllabus details found.
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </motion.div>
+  );
+};
