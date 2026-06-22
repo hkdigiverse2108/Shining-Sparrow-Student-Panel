@@ -115,7 +115,7 @@ export const LoginPage = () => {
                 onChange={(e) => setOtr(e.target.value)}
                 placeholder="38294710"
                 maxLength={8}
-                className="ui-input pl-11 tracking-widest font-mono font-extrabold text-base"
+                className="ui-input pl-11 tracking-widest font-mono font-extrabold"
               />
             </div>
           </div>
@@ -131,7 +131,7 @@ export const LoginPage = () => {
         </form>
 
         {/* Switch to signup */}
-        <div className="text-center text-xs text-slate-500 !mt-4">
+        <div className="text-center text-xs text-slate-500 mt-4!">
           New student?{' '}
           <Link to="/signup" className="text-orange-600 dark:text-orange-400 font-bold hover:underline">
             Register here

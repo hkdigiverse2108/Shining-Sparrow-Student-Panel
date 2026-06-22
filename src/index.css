@@ -16,6 +16,11 @@
 }
 
 /* Global resets for the warm organic theme */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   background-color: #fdfaf2; /* Warm cream */
   color: #3a2212; /* Dark chocolate text */
@@ -147,6 +152,21 @@ body {
 }
 .dark .rich-text-content h1, .dark .rich-text-content h2, .dark .rich-text-content h3, .dark .rich-text-content h4 {
   color: #ffffff;
+}
+
+.lesson-description {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.lesson-description pre {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  font-family: inherit !important;
+  margin: 0 !important;
+  color: inherit !important;
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: inherit !important;
 }
 
 /* Centralized UI Design System Tokens and Classes */
@@ -294,5 +314,27 @@ body {
 .dark .ui-input:focus {
   border-color: #f3ad21;
   box-shadow: 0 0 0 3px rgba(243, 173, 33, 0.15);
+}
+
+@keyframes topBarFade {
+  0% {
+    opacity: 1;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  80% {
+    opacity: 1;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  100% {
+    opacity: 0.15;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+}
+
+.animate-top-bar-fade {
+  animation: topBarFade 5s forwards ease-in-out;
 }
 

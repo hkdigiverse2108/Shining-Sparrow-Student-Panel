@@ -59,6 +59,7 @@ export const ProfilePage = () => {
   const [phoneNumber, setPhoneNumber] = useState(student?.phoneNumber || '');
   const [district, setDistrict] = useState(student?.district || '');
   const [std, setStd] = useState(student?.std || '5th Std');
+  const [schoolName, setSchoolName] = useState(student?.schoolName || '');
   const [profilePhoto, setProfilePhoto] = useState(student?.profilePhoto || '');
   const [profileLoading, setProfileLoading] = useState(false);
 
@@ -85,6 +86,7 @@ export const ProfilePage = () => {
         profilePhoto,
         district,
         std,
+        schoolName,
       });
 
       if (response && response.status === 200) {
@@ -145,6 +147,12 @@ export const ProfilePage = () => {
                     <span className="flex items-center gap-1">
                       <School size={12} className="text-brand-primary" />
                       {student.std}
+                    </span>
+                  )}
+                  {student?.schoolName && (
+                    <span className="flex items-center gap-1">
+                      <School size={12} className="text-brand-primary" />
+                      {student.schoolName}
                     </span>
                   )}
                   {student?.district && (
@@ -374,6 +382,24 @@ export const ProfilePage = () => {
                     className="ui-input pl-11"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Row: School Name */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                School Name
+                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-350 dark:text-slate-600">(optional)</span>
+              </label>
+              <div className="relative">
+                <School className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  value={schoolName}
+                  onChange={(e) => setSchoolName(e.target.value)}
+                  placeholder="Enter your school name"
+                  className="ui-input pl-11"
+                />
               </div>
             </div>
 

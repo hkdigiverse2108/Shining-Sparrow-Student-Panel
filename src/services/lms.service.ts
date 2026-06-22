@@ -24,12 +24,6 @@ const lmsService = {
     return response.data;
   },
 
-  getCourseCurriculums: async (courseId: string, courseLessonId: string) => {
-    const response = await client.get('/course-curriculum/all', {
-      params: { courseId, courseLessonId },
-    });
-    return response.data;
-  },
 
   getExamForLesson: async (courseId: string, courseLessonId: string) => {
     const response = await client.get('/exam/all', {

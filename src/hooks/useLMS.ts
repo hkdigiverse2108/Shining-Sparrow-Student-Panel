@@ -19,15 +19,6 @@ export const useLesson = (lessonId: string) => {
   });
 };
 
-export const useCourseCurriculums = (courseId: string, courseLessonId: string) => {
-  return useQuery({
-    queryKey: ['course-curriculums', courseId, courseLessonId],
-    queryFn: () => lmsService.getCourseCurriculums(courseId, courseLessonId),
-    enabled: !!courseId && !!courseLessonId,
-    retry: false,
-  });
-};
-
 export const useExamForLesson = (courseId: string, courseLessonId: string) => {
   return useQuery({
     queryKey: ['exam-for-lesson', courseId, courseLessonId],
@@ -53,7 +44,6 @@ export const useSubmitExam = () => {
       queryClient.invalidateQueries({ queryKey: ['course-lessons'] });
       queryClient.invalidateQueries({ queryKey: ['exam-attempts'] });
       queryClient.invalidateQueries({ queryKey: ['lesson'] });
-      queryClient.invalidateQueries({ queryKey: ['course-curriculums'] });
     },
   });
 };

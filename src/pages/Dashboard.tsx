@@ -37,7 +37,7 @@ interface EnrolledCourse {
 
 interface EnrolledWorkshop {
   _id: string;
-  workshop_id: {
+  workshopId: {
     _id: string;
     title: string;
     description: string;
@@ -153,7 +153,7 @@ export const Dashboard = () => {
 
   // Filter recommendations: Exclude already purchased programs
   const purchasedCourseIds = new Set(enrolledCourses.map((ec: EnrolledCourse) => ec.courseId?._id));
-  const purchasedWorkshopIds = new Set(enrolledWorkshops.map((ew: EnrolledWorkshop) => ew.workshop_id?._id));
+  const purchasedWorkshopIds = new Set(enrolledWorkshops.map((ew: EnrolledWorkshop) => ew.workshopId?._id));
 
   const availableCourses = allCourses.filter((course: CourseItem) => !purchasedCourseIds.has(course._id));
   const availableWorkshops = allWorkshops.filter((workshop: WorkshopItem) => !purchasedWorkshopIds.has(workshop._id));
@@ -401,7 +401,7 @@ export const Dashboard = () => {
                           className="grid grid-cols-1 sm:grid-cols-2 gap-6"
                         >
                           {enrolledWorkshops.map((enrollment: EnrolledWorkshop) => {
-                            const workshop = enrollment.workshop_id;
+                            const workshop = enrollment.workshopId;
                             if (!workshop) return null;
 
                             return (
@@ -696,7 +696,7 @@ export const Dashboard = () => {
                                   </span>
                                 </div>
                                 
-                                <h4 className="font-display font-black text-base text-slate-850 dark:text-white leading-snug group-hover:text-brand-primary transition-colors duration-300 line-clamp-2 min-h-[2.75rem]">
+                                <h4 className="font-display font-black text-base text-slate-850 dark:text-white leading-snug group-hover:text-brand-primary transition-colors duration-300 line-clamp-2 min-h-11">
                                   {blog.title}
                                 </h4>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">

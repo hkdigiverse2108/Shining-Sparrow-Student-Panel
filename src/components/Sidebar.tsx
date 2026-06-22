@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
+import { useBlogs } from '../hooks/useBlogs';
 import { LogoutConfirmationModal } from './LogoutConfirmationModal';
 import { 
   BookOpen, ShoppingBag, Tv, Newspaper, User, LogOut, Sun, Moon, 
@@ -20,6 +21,10 @@ export const Sidebar = () => {
 
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  
+  // Fetch actual blog count
+  const { data: blogsRes } = useBlogs({ page: 1, limit: 1 });
+  const blogCount = blogsRes?.data?.totalData || blogsRes?.data?.blog_data?.length || 0;
   
   // Collapse state for desktop view
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -89,7 +94,7 @@ export const Sidebar = () => {
       icon: Newspaper,
       path: '/dashboard',
       search: 'tab=blogs',
-      badge: '3', // Glowing notification indicator
+      badge: blogCount > 0 ? String(blogCount) : undefined,
     },
     {
       label: 'My Profile',

@@ -20,22 +20,27 @@ const settingsService = {
 
   getHeroBanners: async (params?: { page?: number; limit?: number; type?: string }) => {
     const response = await client.get('/hero-banner/all', {
-      params: { type: 'Web', ...params },
+      params: { type: 'web', ...params },
     });
     return response.data;
   },
 
   getTestimonials: async (params?: { page?: number; limit?: number; type?: string }) => {
     const response = await client.get('/testimonial/all', {
-      params: { type: 'Course', ...params },
+      params: { type: 'course', ...params },
     });
     return response.data;
   },
 
   getFAQs: async (params?: { page?: number; limit?: number; search?: string; type?: string; learningCatalogFilter?: string }) => {
     const response = await client.get('/faq/all', {
-      params: { type: 'Course', ...params },
+      params: { type: 'course', ...params },
     });
+    return response.data;
+  },
+
+  submitTestimonial: async (payload: { name: string; description: string; rate: number; type: 'workshop' | 'course'; learningCatalogId: string }) => {
+    const response = await client.post('/testimonial/add', payload);
     return response.data;
   },
 

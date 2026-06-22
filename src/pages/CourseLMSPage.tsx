@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCourse } from '../hooks/useCourses';
-import { useCourseCurriculums, useExamForLesson, useCompleteLesson } from '../hooks/useLMS';
+import { useExamForLesson, useCompleteLesson, useExamAttempts } from '../hooks/useLMS';
 import { useToast } from '../context/ToastContext';
 import { Loader } from '../components/Loader';
 import { 
-  Play, Lock, Unlock, Download, FileText, ChevronDown, ChevronRight, 
-  Award, Clock, ArrowRight, Menu, X, HelpCircle, Video, CheckCircle2
+  Lock, Unlock, Download, FileText, ChevronDown, ChevronRight, 
+  Award, Clock, ArrowRight, Menu, X, HelpCircle, Video, CheckCircle2,
+  Maximize2, Minimize2, RotateCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
@@ -15,6 +16,10 @@ interface Lesson {
   _id: string;
   title: string;
   subtitle?: string;
+  description?: string;
+  thumbnail?: string;
+  videoLink?: string;
+  duration?: string;
   isUnlocked: boolean;
   practiceMaterial?: string;
   isCompleted?: boolean;
@@ -33,13 +38,6 @@ interface Course {
   courseLessonIds?: Lesson[];
 }
 
-interface Curriculum {
-  _id: string;
-  title: string;
-  videoLink: string;
-  duration?: string;
-}
-
 interface Exam {
   _id: string;
   totalMarks: number;
@@ -50,17 +48,31 @@ interface Exam {
 // Helper to parse YouTube URLs to embed URLs
 const getEmbedUrl = (url: string) => {
   if (!url) return '';
-  if (url.includes('youtube.com/embed/')) return url;
   
-  let videoId = '';
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  
-  if (match && match[2].length === 11) {
-    videoId = match[2];
+  let embedUrl = url;
+  if (!url.includes('youtube.com/embed/')) {
+    let videoId = '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    
+    if (match && match[2].length === 11) {
+      videoId = match[2];
+    }
+    
+    if (videoId) {
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
+    }
   }
   
-  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0` : url;
+  // Force fs=0 to disable the native YouTube fullscreen button
+  if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+    const separator = embedUrl.includes('?') ? '&' : '?';
+    if (!embedUrl.includes('fs=')) {
+      embedUrl = `${embedUrl}${separator}fs=0`;
+    }
+  }
+  
+  return embedUrl;
 };
 
 export const CourseLMSPage = () => {
@@ -77,8 +89,9 @@ export const CourseLMSPage = () => {
           onSuccess: () => {
             showToast('Lesson marked completed successfully! 🌟', 'success');
           },
-          onError: (err: any) => {
-            showToast(err?.response?.data?.message || 'Failed to complete lesson.', 'error');
+          onError: (err: Error) => {
+            const apiError = err as { response?: { data?: { message?: string } } };
+            showToast(apiError?.response?.data?.message || 'Failed to complete lesson.', 'error');
           }
         }
       );
@@ -91,8 +104,6 @@ export const CourseLMSPage = () => {
 
   // Selected Lesson State
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
-  const [activeVideoTitle, setActiveVideoTitle] = useState<string | null>(null);
   
   // UI states
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -101,7 +112,37 @@ export const CourseLMSPage = () => {
   // Track previous course ID for adjusting state during render
   const [prevCourseId, setPrevCourseId] = useState<string | null>(null);
 
-  // Determine correct course ID for curriculum and exam queries (sub-course ID for merged courses, parent course ID for single courses)
+  // Fullscreen container logic for blocking YouTube interactions in fullscreen
+  const playerContainerRef = React.useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      playerContainerRef.current.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  // Determine correct course ID for exam query (sub-course ID for merged courses, parent course ID for single courses)
   let targetCourseId = courseId || '';
   if (course && course.courseCurriculumIds && course.courseCurriculumIds.length > 0 && selectedLessonId) {
     for (const subCourse of course.courseCurriculumIds) {
@@ -113,23 +154,22 @@ export const CourseLMSPage = () => {
     }
   }
 
-  // Fetch Curriculums and Exam for selected lesson using targetCourseId
-  const { data: curriculumsRes } = useCourseCurriculums(
-    targetCourseId,
-    selectedLessonId || ''
-  );
-  
+  // Fetch Exam for selected lesson
   const { data: examRes } = useExamForLesson(
     targetCourseId,
     selectedLessonId || ''
   );
 
-  const curriculums = (curriculumsRes?.data?.course_curriculum_data || []) as Curriculum[];
   const exam = (examRes?.data?.exam_data?.length > 0 ? examRes.data.exam_data[0] : null) as Exam | null;
 
-  // Compute active video fallback during render to avoid useEffect dependency cascading renders
-  const currentVideoUrl = activeVideoUrl ?? (curriculums.length > 0 ? curriculums[0].videoLink : null);
-  const currentVideoTitle = activeVideoTitle ?? (curriculums.length > 0 ? curriculums[0].title : null);
+  // Fetch Exam Attempts
+  const { data: attemptsRes } = useExamAttempts(
+    targetCourseId,
+    exam?._id || ''
+  );
+
+  const attempts = attemptsRes?.data?.attempt_data || [];
+  const latestAttempt = attempts.length > 0 ? attempts[0] : null;
 
   // Auto-select first unlocked lesson on load directly during render when course changes.
   // This avoids calling setState inside useEffect, preventing cascading renders and linter warnings.
@@ -204,18 +244,16 @@ export const CourseLMSPage = () => {
       return;
     }
     setSelectedLessonId(lesson._id);
-    setActiveVideoUrl(null); // Reset selected video on lesson change to trigger fallback
-    setActiveVideoTitle(null);
     setSidebarOpen(false);
   };
 
   const isMerged = course.courseCurriculumIds && course.courseCurriculumIds.length > 0;
 
   return (
-    <div className="min-h-[85vh] bg-slate-50 dark:bg-slate-900/40 flex flex-col md:flex-row transition-all duration-200">
+    <div className="flex-1 bg-slate-50 dark:bg-slate-900/40 flex flex-col xl:flex-row transition-all duration-200">
       
       {/* Mobile Sidebar Toggle */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-b border-orange-100 dark:border-slate-700">
+      <div className="xl:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-b border-orange-100 dark:border-slate-700">
         <button
           onClick={() => setSidebarOpen(true)}
           className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300"
@@ -231,8 +269,8 @@ export const CourseLMSPage = () => {
       {/* LEFT NAVIGATION */}
       <aside className={`
         fixed inset-y-0 left-0 z-30 w-72 border-r border-orange-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300
-        md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80'}
+        xl:relative xl:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${isSidebarCollapsed ? 'xl:w-20' : 'xl:w-80'}
       `}>
         <div className={`p-4 border-b border-orange-50 dark:border-slate-800 flex items-center ${
           isSidebarCollapsed ? 'justify-center' : 'justify-between'
@@ -242,16 +280,16 @@ export const CourseLMSPage = () => {
               Course Syllabus
             </h3>
           )}
-          <div className={`flex items-center gap-1.5 ${isSidebarCollapsed ? '' : 'mx-auto md:mx-0'}`}>
+          <div className={`flex items-center gap-1.5 ${isSidebarCollapsed ? '' : 'mx-auto xl:mx-0'}`}>
             {/* Desktop Collapse Toggle */}
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
+              className="hidden xl:flex p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
               title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} className="rotate-90" />}
             </button>
-            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
+            <button onClick={() => setSidebarOpen(false)} className="xl:hidden text-slate-400 hover:text-slate-600">
               <X size={20} />
             </button>
           </div>
@@ -396,7 +434,7 @@ export const CourseLMSPage = () => {
       </aside>
 
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm md:hidden" />
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm xl:hidden" />
       )}
 
       {/* CENTER & RIGHT COLUMN GRID */}
@@ -404,28 +442,69 @@ export const CourseLMSPage = () => {
         variants={pageChildVariants}
         initial="initial"
         animate="animate"
-        className="grow p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8"
+        className="grow p-4 sm:p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-3 gap-8"
       >
         
         {/* CENTER AREA */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           {activeLesson ? (
             <>
-              {/* Player */}
-              {currentVideoUrl ? (
-                <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border border-orange-100 dark:border-slate-800 shadow-lg">
-                  {currentVideoUrl.includes('youtube.com') || currentVideoUrl.includes('youtu.be') ? (
-                    <iframe
-                      src={getEmbedUrl(currentVideoUrl)}
-                      title={currentVideoTitle || 'Lecture video'}
-                      className="absolute inset-0 w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
+              {/* Player — uses videoLink directly from lesson */}
+              {activeLesson.videoLink ? (
+                <div 
+                  ref={playerContainerRef}
+                  className="group relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border border-orange-100 dark:border-slate-800 shadow-lg"
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  {activeLesson.videoLink.includes('youtube.com') || activeLesson.videoLink.includes('youtu.be') ? (
+                    <>
+                      <iframe
+                        src={getEmbedUrl(activeLesson.videoLink)}
+                        title={activeLesson.title}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                      
+                      {/* Top bar visual shield + branding */}
+                      <div 
+                        key={selectedLessonId || 'topbar'}
+                        className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/90 to-slate-950/20 backdrop-blur-[2px] z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! group-hover:backdrop-blur-[2px]! transition-all duration-500"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></span>
+                          <span className="text-sm font-bold text-white tracking-wide truncate max-w-70 sm:max-w-md">
+                            {activeLesson.title}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Bottom-right visual shield + branding */}
+                      <div className="absolute bottom-3 right-3 z-10 pointer-events-none select-none">
+                        <div className="px-3 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-orange-200">
+                          Shining Sparrow
+                        </div>
+                      </div>
+                      
+                      {/* Custom Fullscreen Toggle Button */}
+                      <button
+                        onClick={toggleFullscreen}
+                        className="absolute bottom-3 left-3 z-20 p-2.5 bg-slate-950/80 hover:bg-slate-900 text-white rounded-full border border-white/10 shadow-lg cursor-pointer transition-colors"
+                        title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                      >
+                        {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                      </button>
+
+                      {/* Invisible pointer-events overlays to capture any remaining clicks in those areas */}
+                      <div className="absolute top-0 left-0 right-0 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
+                      <div className="absolute bottom-0 left-0 w-48 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
+                      <div className="absolute bottom-0 right-0 w-56 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
+                    </>
                   ) : (
                     <video
-                      src={currentVideoUrl}
+                      src={activeLesson.videoLink}
                       controls
+                      poster={activeLesson.thumbnail || undefined}
                       className="absolute inset-0 w-full h-full"
                     ></video>
                   )}
@@ -451,9 +530,20 @@ export const CourseLMSPage = () => {
                       {activeLesson.subtitle}
                     </p>
                   )}
+                  {activeLesson.description && (
+                    <div 
+                      className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mt-2 lesson-description"
+                      dangerouslySetInnerHTML={{ __html: activeLesson.description }}
+                    />
+                  )}
+                  {activeLesson.duration && (
+                    <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider">
+                      <Clock size={11} /> {activeLesson.duration}
+                    </span>
+                  )}
                 </div>
 
-                {/* PDF Attachments */}
+                {/* PDF Attachment */}
                 {activeLesson.practiceMaterial && (
                   <div className="ui-card p-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -477,39 +567,7 @@ export const CourseLMSPage = () => {
                 )}
               </div>
 
-              {/* Video parts */}
-              {curriculums.length > 1 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Lesson Parts ({curriculums.length})</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {curriculums.map((curr: Curriculum, index: number) => {
-                      const isActive = currentVideoUrl === curr.videoLink;
-                      return (
-                        <button
-                          key={curr._id}
-                          onClick={() => {
-                            setActiveVideoUrl(curr.videoLink);
-                            setActiveVideoTitle(curr.title);
-                          }}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                            isActive
-                              ? 'bg-orange-50 border-orange-200 text-orange-600 dark:bg-orange-950/30 dark:border-slate-700 dark:text-orange-400'
-                              : 'bg-white border-slate-100 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className={`p-2 rounded-lg shrink-0 ${isActive ? 'bg-orange-600 text-white' : 'bg-slate-100 dark:bg-slate-900'}`}>
-                            <Play size={12} className="fill-current" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="block text-xs font-bold truncate">Part {index + 1}: {curr.title}</span>
-                            <span className="block text-[10px] text-slate-400">{curr.duration || 'Video'}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+
             </>
           ) : (
             <div className="ui-card border border-dashed text-center py-24">
@@ -523,7 +581,7 @@ export const CourseLMSPage = () => {
         </div>
 
         {/* RIGHT COLUMN */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1 self-start w-full">
           {activeLesson && (
             <div className="sticky top-24 ui-card space-y-6 p-6">
               {exam ? (
@@ -540,36 +598,113 @@ export const CourseLMSPage = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-orange-100/50 dark:border-slate-800/40 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <Award size={14} /> Total Score:
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{exam.totalMarks} Marks</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <CheckCircle2 size={14} /> Passing Mark:
-                      </span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{exam.passingMarks} Marks</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <Clock size={14} /> Time Limit:
-                      </span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {Math.floor(exam.timeLimit / 60)} minutes
-                      </span>
-                    </div>
-                  </div>
+                  {latestAttempt ? (
+                    <div className="space-y-6">
+                      <div className="text-center space-y-2">
+                        {latestAttempt.status === 'pass' ? (
+                          <>
+                            <span className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-sm">
+                              🎉
+                            </span>
+                            <h4 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
+                              Exam Passed!
+                            </h4>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                              <span>Passed</span>
+                              <Award size={10} />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl mx-auto shadow-sm">
+                              ❌
+                            </span>
+                            <h4 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
+                              Exam Failed
+                            </h4>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                              <span>Try Again</span>
+                              <RotateCw size={10} />
+                            </div>
+                          </>
+                        )}
+                      </div>
 
-                  <Link
-                    to={`/exam/${exam._id}?courseId=${courseId}`}
-                    className="ui-button-primary w-full py-3.5 text-xs gap-2"
-                  >
-                    <span>Start Timed Exam</span>
-                    <ArrowRight size={14} />
-                  </Link>
+                      <div className="space-y-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-orange-100/50 dark:border-slate-800/40 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <Award size={14} /> Your Score:
+                          </span>
+                          <span className={`font-bold ${latestAttempt.status === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {latestAttempt.obtainedMarks} / {exam.totalMarks} Marks
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <CheckCircle2 size={14} /> Passing Mark:
+                          </span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{exam.passingMarks} Marks</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <RotateCw size={14} /> Attempts:
+                          </span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{latestAttempt.attemptCount || 1}</span>
+                        </div>
+                        {latestAttempt.timeTaken && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 flex items-center gap-1.5">
+                              <Clock size={14} /> Time Taken:
+                            </span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                              {Math.floor(latestAttempt.timeTaken / 60)}m {latestAttempt.timeTaken % 60}s
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Link
+                        to={`/exam/${exam._id}?courseId=${courseId}`}
+                        className="ui-button-primary w-full py-3.5 text-xs gap-2"
+                      >
+                        <span>{latestAttempt.status === 'pass' ? 'Retake Exam' : 'Re-take Timed Exam'}</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-orange-100/50 dark:border-slate-800/40 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <Award size={14} /> Total Score:
+                          </span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{exam.totalMarks} Marks</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <CheckCircle2 size={14} /> Passing Mark:
+                          </span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{exam.passingMarks} Marks</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 flex items-center gap-1.5">
+                            <Clock size={14} /> Time Limit:
+                          </span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {Math.floor(exam.timeLimit / 60)} minutes
+                          </span>
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/exam/${exam._id}?courseId=${courseId}`}
+                        className="ui-button-primary w-full py-3.5 text-xs gap-2"
+                      >
+                        <span>Start Timed Exam</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </>
+                  )}
                 </div>
               ) : activeLesson?.isCompleted ? (
                 <div className="text-center py-10 space-y-4">
@@ -582,8 +717,9 @@ export const CourseLMSPage = () => {
                   <p className="text-xs text-slate-400 max-w-xs mx-auto leading-normal">
                     Great job! You have finished this lesson. Click on the next lesson to continue your math adventure!
                   </p>
-                  <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold inline-block">
-                    Passed & Completed 🌟
+                  <div className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold">
+                    <span>Passed & Completed</span>
+                    <Award size={12} className="shrink-0" />
                   </div>
                 </div>
               ) : (

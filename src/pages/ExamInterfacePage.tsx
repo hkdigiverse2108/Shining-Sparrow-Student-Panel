@@ -82,7 +82,7 @@ const parseCalculationText = (text: string) => {
     let pendingSign = '';
     let hasNumbers = false;
 
-    for (let token of tokens) {
+    for (const token of tokens) {
       if (token === '+' || token === '-') {
         pendingSign = token;
       } else if (/^[+-]?\d+$/.test(token)) {
@@ -131,6 +131,7 @@ export const ExamInterfacePage = () => {
   
   // Submit Results state
   const [resultData, setResultData] = useState<ExamResult | null>(null);
+  const [activeReviewIndex, setActiveReviewIndex] = useState(0);
 
   // Audio Playback Ref
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
@@ -282,6 +283,9 @@ export const ExamInterfacePage = () => {
           </div>
           
           <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+              {exam.title}
+            </span>
             <h2 className={`font-display font-extrabold text-3xl ${passed ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
               {passed ? 'Exam Passed!' : 'Exam Attempt Failed'}
             </h2>
@@ -314,54 +318,212 @@ export const ExamInterfacePage = () => {
         </div>
 
         {/* Answer Review Section */}
-        <div className="space-y-4">
-          <h3 className="font-display font-extrabold text-xl text-slate-900 dark:text-white">
-            Questions Review
-          </h3>
+        <div className="space-y-6">
+          <div className="border-b dark:border-slate-800 pb-3">
+            <h3 className="font-display font-extrabold text-xl text-slate-905 dark:text-white">
+              Questions Review
+            </h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Select a question number from the left panel to review its details and comparative answers.
+            </p>
+          </div>
           
-          <div className="space-y-4">
-            {questions.map((q: Question, index: number) => {
-              const studentAnswer = resultData.answers?.find((a: { questionId: string; answer: string; isCorrect: boolean }) => a.questionId === q._id);
-              const isCorrect = studentAnswer?.isCorrect;
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            {/* Left Column: Sidebar Question Switcher */}
+            <div className="md:col-span-1 bg-white dark:bg-card-dark border border-orange-100/50 dark:border-slate-800/60 rounded-3xl p-5 space-y-4 shadow-sm">
+              <h4 className="font-extrabold text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Question Panel
+              </h4>
               
-              return (
-                <div 
-                  key={q._id}
-                  className={`p-5 bg-white border dark:bg-card-dark dark:border-slate-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all border-l-4 ${
-                    isCorrect ? 'border-l-emerald-500' : 'border-l-rose-500'
-                  }`}
-                >
-                  <div className="space-y-2 max-w-xl">
-                    <span className="text-xs font-bold text-brand-primary">Question {index + 1}</span>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white leading-relaxed">
-                      {q.questionText}
-                    </p>
-                    
-                    {/* Media attachments */}
-                    {q.questionImage && (
-                      <img src={q.questionImage} alt="Finger Position" className="w-24 h-24 rounded-lg object-contain bg-slate-50 border" />
-                    )}
-                    
-                    <div className="flex flex-wrap gap-4 text-xs">
-                      <span className="text-slate-400">
-                        Your Answer: <strong className={isCorrect ? 'text-emerald-600' : 'text-rose-600'}>{studentAnswer?.answer || '(No Answer)'}</strong>
-                      </span>
-                      <span className="text-slate-400">
-                        Correct Answer: <strong className="text-emerald-600">{q.correctAnswer}</strong>
-                      </span>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-5 gap-2">
+                {questions.map((q: Question, idx: number) => {
+                  const studentAnswer = resultData.answers?.find((a) => a.questionId === q._id);
+                  const isCorrect = studentAnswer?.isCorrect;
+                  const isActive = activeReviewIndex === idx;
+                  
+                  return (
+                    <button
+                      key={q._id}
+                      type="button"
+                      onClick={() => setActiveReviewIndex(idx)}
+                      className={`w-10 h-10 rounded-xl font-bold text-xs flex items-center justify-center transition-all cursor-pointer ${
+                        isActive
+                          ? 'ring-2 ring-brand-primary scale-105 shadow-md font-black'
+                          : 'hover:scale-105'
+                      } ${
+                        isCorrect
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50'
+                          : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/50'
+                      }`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <div className="shrink-0 flex items-center gap-1.5 text-xs font-bold">
-                    {isCorrect ? (
-                      <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 size={16} /> Correct</span>
-                    ) : (
-                      <span className="text-rose-600 flex items-center gap-1"><XCircle size={16} /> Incorrect</span>
-                    )}
+              {/* Progress Summary Mini-Badge */}
+              <div className="border-t dark:border-slate-800 pt-4 flex justify-between items-center text-[10px] font-bold text-slate-400">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                  {resultData.obtainedMarks} Correct
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+                  {questions.length - resultData.obtainedMarks} Incorrect
+                </span>
+              </div>
+            </div>
+
+            {/* Right Column: Detailed Question Card */}
+            <div className="md:col-span-2 space-y-4">
+              {(() => {
+                const activeQuestion = questions[activeReviewIndex];
+                if (!activeQuestion) return null;
+                
+                const studentAnswer = resultData.answers?.find((a) => a.questionId === activeQuestion._id);
+                const isCorrect = studentAnswer?.isCorrect;
+                const activeParsedCalc = activeQuestion.questionType === 'calculation' ? parseCalculationText(activeQuestion.questionText) : null;
+                
+                return (
+                  <div className="ui-card space-y-5 border-l-4 border-l-brand-primary">
+                    <div className="flex justify-between items-center border-b dark:border-slate-800 pb-3">
+                      <div>
+                        <h4 className="font-extrabold text-xs text-brand-primary">
+                          Question {activeReviewIndex + 1} of {questions.length}
+                        </h4>
+                        <span className="text-[10px] text-slate-400 capitalize font-bold">
+                          Type: {activeQuestion.questionType || 'Calculation'}
+                        </span>
+                      </div>
+                      
+                      <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                        isCorrect
+                          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-450'
+                          : 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-450'
+                      }`}>
+                        {isCorrect ? (
+                          <>
+                            <CheckCircle2 size={12} /> Correct
+                          </>
+                        ) : (
+                          <>
+                            <XCircle size={12} /> Incorrect
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Question Content */}
+                    <div className="space-y-4">
+                      {activeParsedCalc ? (
+                        <div className="flex justify-center py-6 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border dark:border-slate-800/40">
+                          {activeParsedCalc.isVertical ? (
+                            <div className="inline-flex flex-col items-end font-mono text-4xl sm:text-5xl font-extrabold text-slate-800 dark:text-white border-b-4 border-slate-700 dark:border-slate-300 pb-2 px-6 min-w-35">
+                              {activeParsedCalc.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center w-full justify-between gap-6">
+                                  <span className="text-2xl text-slate-400 dark:text-slate-500 font-bold">{item.sign}</span>
+                                  <span>{item.val}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center justify-center gap-3 max-w-full px-4">
+                              {activeParsedCalc.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-card-dark border dark:border-slate-800/60 rounded-2xl shadow-sm font-mono text-3xl font-extrabold text-slate-800 dark:text-white">
+                                  {item.sign && <span className="text-brand-primary dark:text-brand-secondary text-2xl font-bold">{item.sign}</span>}
+                                  <span>{item.val}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white leading-relaxed">
+                          {activeQuestion.questionText}
+                        </p>
+                      )}
+
+                      {/* Graphic Attachment */}
+                      {activeQuestion.questionImage && (
+                        <div className="flex justify-center p-3 bg-slate-50 dark:bg-page-dark rounded-2xl border dark:border-slate-800/60 w-36 h-36">
+                          <img src={activeQuestion.questionImage} alt="Finger Position" className="max-h-full max-w-full object-contain" />
+                        </div>
+                      )}
+
+                      {/* Audio Attachment */}
+                      {activeQuestion.questionType === 'audio' && activeQuestion.questionAudio && (
+                        <div className="w-full p-4 bg-slate-50 dark:bg-page-dark/60 border dark:border-slate-800/40 rounded-2xl flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 text-sm text-slate-500">
+                            <Volume2 size={20} className="text-brand-primary" />
+                            <span>Listen to the calculation problem:</span>
+                          </div>
+                          <audio
+                            ref={(el) => { audioRefs.current[activeQuestion._id] = el; }}
+                            src={activeQuestion.questionAudio}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => playAudio(activeQuestion._id)}
+                            className="px-4 py-2 rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs flex items-center gap-1 shadow-sm cursor-pointer"
+                          >
+                            <Play size={12} className="fill-current" /> Play Audio
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Answer Comparison Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t dark:border-slate-800 pt-4">
+                      <div className={`p-4 rounded-2xl border ${
+                        isCorrect
+                          ? 'bg-emerald-50/20 border-emerald-100 dark:bg-emerald-950/5 dark:border-emerald-900/30'
+                          : 'bg-rose-50/20 border-rose-100 dark:bg-rose-950/5 dark:border-rose-900/30'
+                      }`}>
+                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-1">
+                          Your Answer
+                        </span>
+                        <span className={`text-xl font-black ${
+                          isCorrect ? 'text-emerald-600 dark:text-emerald-455' : 'text-rose-600 dark:text-rose-455'
+                        }`}>
+                          {studentAnswer?.answer || '(No Answer)'}
+                        </span>
+                      </div>
+                      
+                      <div className="p-4 rounded-2xl border bg-emerald-50/40 border-emerald-200/50 dark:bg-emerald-950/10 dark:border-emerald-900/40">
+                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-1">
+                          Correct Answer
+                        </span>
+                        <span className="text-xl font-black text-emerald-600 dark:text-emerald-455">
+                          {activeQuestion.correctAnswer}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Inner navigation buttons */}
+                    <div className="flex justify-between gap-4 pt-3 border-t dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setActiveReviewIndex((prev) => Math.max(0, prev - 1))}
+                        disabled={activeReviewIndex === 0}
+                        className="px-4 py-2 border dark:border-slate-800/40 bg-white dark:bg-card-dark text-slate-705 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 disabled:opacity-40 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <ArrowLeft size={12} /> Previous Question
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveReviewIndex((prev) => Math.min(questions.length - 1, prev + 1))}
+                        disabled={activeReviewIndex === questions.length - 1}
+                        className="px-4 py-2 border dark:border-slate-800/40 bg-white dark:bg-card-dark text-slate-705 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 disabled:opacity-40 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        Next Question <ArrowRight size={12} />
+                      </button>
+                    </div>
+
                   </div>
-                </div>
-              );
-            })}
+                );
+              })()}
+            </div>
           </div>
         </div>
 
@@ -459,7 +621,7 @@ export const ExamInterfacePage = () => {
                     initial="hidden"
                     animate="show"
                     key={`${currentQuestionIndex}-vertical`}
-                    className="inline-flex flex-col items-end font-mono text-4xl sm:text-5xl font-extrabold text-slate-800 dark:text-white border-b-4 border-slate-700 dark:border-slate-300 pb-2 px-6 min-w-[140px]"
+                    className="inline-flex flex-col items-end font-mono text-4xl sm:text-5xl font-extrabold text-slate-800 dark:text-white border-b-4 border-slate-700 dark:border-slate-300 pb-2 px-6 min-w-35"
                   >
                     {parsedCalc.items.map((item, idx) => {
                       return (

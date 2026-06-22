@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import settingsService from '../services/settings.service';
 import type { ContactUsPayload } from '../services/settings.service';
 
@@ -33,5 +33,17 @@ export const useFAQs = (params?: { page?: number; limit?: number; search?: strin
 export const useContactUs = () => {
   return useMutation({
     mutationFn: (payload: ContactUsPayload) => settingsService.contactUs(payload),
+  });
+};
+
+export const useSubmitTestimonial = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { name: string; description: string; rate: number; type: 'workshop' | 'course'; learningCatalogId: string }) =>
+      settingsService.submitTestimonial(payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['workshop', variables.learningCatalogId] });
+      queryClient.invalidateQueries({ queryKey: ['course', variables.learningCatalogId] });
+    },
   });
 };

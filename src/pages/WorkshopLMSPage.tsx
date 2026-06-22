@@ -74,7 +74,7 @@ export const WorkshopLMSPage = () => {
       variants={pageChildVariants}
       initial="initial"
       animate="animate"
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6"
+      className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6"
     >
       
       {/* Back button and workshop title */}
@@ -101,22 +101,51 @@ export const WorkshopLMSPage = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
         {/* Left Column: Player & Current Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           {currentVideoUrl ? (
             <div className="space-y-6">
               {/* Video Player */}
-              <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border dark:border-slate-800 shadow-lg">
+              <div 
+                className="group relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border dark:border-slate-800 shadow-lg"
+                onContextMenu={(e) => e.preventDefault()}
+              >
                 {currentVideoUrl.includes('youtube.com') || currentVideoUrl.includes('youtu.be') ? (
-                  <iframe
-                    src={getEmbedUrl(currentVideoUrl)}
-                    title={currentVideoTitle || 'Workshop video'}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
+                  <>
+                    <iframe
+                       src={getEmbedUrl(currentVideoUrl)}
+                      title={currentVideoTitle || 'Workshop video'}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                    
+                    {/* Top bar visual shield + branding */}
+                    <div 
+                      key={currentVideoUrl || 'topbar'}
+                      className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/90 to-slate-950/20 backdrop-blur-[2px] z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! group-hover:backdrop-blur-[2px]! transition-all duration-500"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></span>
+                        <span className="text-sm font-bold text-white tracking-wide truncate max-w-70 sm:max-w-md">
+                          {currentVideoTitle || 'Workshop Video'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Bottom-right visual shield + branding */}
+                    <div className="absolute bottom-3 right-3 z-10 pointer-events-none select-none">
+                      <div className="px-3 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-orange-200">
+                        Shining Sparrow
+                      </div>
+                    </div>
+                    
+                    {/* Invisible pointer-events overlays to capture any remaining clicks in those areas */}
+                    <div className="absolute top-0 left-0 right-0 h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                    <div className="absolute bottom-0 right-0 w-[26%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                  </>
                 ) : (
                   <video
                     src={currentVideoUrl}

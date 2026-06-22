@@ -9,6 +9,7 @@ export interface SignupPayload {
   district: string;
   std: string;
   reachFrom: string;
+  schoolName?: string;
   agreeTerms: boolean;
 }
 
@@ -25,6 +26,7 @@ export interface UpdateProfilePayload {
   district?: string;
   std?: string;
   reachFrom?: string;
+  schoolName?: string;
 }
 
 export interface ChangePasswordPayload {
@@ -63,6 +65,7 @@ const authService = {
       district: payload.district,
       std: payload.std,
       reachFrom: payload.reachFrom,
+      schoolName: payload.schoolName,
     };
     const response = await client.post('/auth/update-profile', data);
     return response.data;

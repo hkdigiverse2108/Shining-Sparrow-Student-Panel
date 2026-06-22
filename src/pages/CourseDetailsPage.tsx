@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useCourse, usePurchaseCourse, useMyCourses } from '../hooks/useCourses';
 import { useWorkshop, usePurchaseWorkshop, useMyWorkshops } from '../hooks/useWorkshops';
-import { useSettings, useFAQs } from '../hooks/useSettings';
+import { useSettings, useFAQs, useSubmitTestimonial } from '../hooks/useSettings';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
 import { Loader } from '../components/Loader';
 import { loadRazorpayScript } from '../utils/razorpay';
 import { 
-  handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, getAvatarFallback 
+  handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE 
 } from '../utils/fallbacks';
 import { ArrowRight, ShieldCheck, CheckCircle2, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,7 +45,7 @@ interface EnrolledCourse {
 
 interface EnrolledWorkshop {
   _id: string;
-  workshop_id: {
+  workshopId: {
     _id: string;
   } | null;
 }
@@ -75,7 +75,7 @@ export const CourseDetailsPage = () => {
   const { data: workshopData, isLoading: workshopLoading } = useWorkshop(id || '');
   const { data: faqsRes } = useFAQs({
     learningCatalogFilter: id || '',
-    type: isWorkshop ? 'Workshop' : 'Course',
+    type: isWorkshop ? 'workshop' : 'course',
     limit: 50,
   });
   const dbFAQs = faqsRes?.data?.faq_data || [];
@@ -88,7 +88,7 @@ export const CourseDetailsPage = () => {
   const enrolledWorkshops = (myWorkshopsRes?.data?.purchased_workshop_data || []) as EnrolledWorkshop[];
 
   const isPurchased = isWorkshop 
-    ? enrolledWorkshops.some((ew: EnrolledWorkshop) => ew.workshop_id?._id === id)
+    ? enrolledWorkshops.some((ew: EnrolledWorkshop) => ew.workshopId?._id === id)
     : enrolledCourses.some((ec: EnrolledCourse) => ec.courseId?._id === id);
 
 
@@ -99,6 +99,40 @@ export const CourseDetailsPage = () => {
   // Local state
   const [purchasing, setPurchasing] = useState(false);
   const [showSimulateModal, setShowSimulateModal] = useState(false);
+
+  // Review form states
+  const [reviewName, setReviewName] = useState(student?.fullName || '');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const submitTestimonialMutation = useSubmitTestimonial();
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewName || !reviewText) {
+      showToast('Please fill in all fields.', 'error');
+      return;
+    }
+    submitTestimonialMutation.mutate(
+      {
+        name: reviewName,
+        description: reviewText,
+        rate: reviewRating,
+        type: 'workshop',
+        learningCatalogId: id || '',
+      },
+      {
+        onSuccess: () => {
+          showToast('Thank you for your feedback! 🌟', 'success');
+          setReviewText('');
+          setSubmitSuccess(true);
+        },
+        onError: () => {
+          showToast('Failed to submit review. Please try again.', 'error');
+        }
+      }
+    );
+  };
 
   const isLoading = isWorkshop ? workshopLoading : courseLoading;
   const item = isWorkshop ? workshopData?.data : courseData?.data;
@@ -311,7 +345,7 @@ export const CourseDetailsPage = () => {
             <div className="flex border-b border-orange-100/50 dark:border-slate-800/60 pb-px">
               {[
                 { id: 'overview', label: 'Program Overview' },
-                { id: 'syllabus', label: 'Curriculum Syllabus' },
+                ...(!isWorkshop ? [{ id: 'syllabus', label: 'Curriculum Syllabus' }] : []),
                 { id: 'faqs', label: isWorkshop ? 'Reviews & FAQs' : 'FAQs' }
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -645,6 +679,87 @@ export const CourseDetailsPage = () => {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+                    {/* Review submission form */}
+                    {isWorkshop && isAuthenticated && isPurchased && (
+                      <div className="ui-card space-y-5">
+                        <div className="border-b dark:border-slate-800 pb-3">
+                          <h3 className="font-display font-extrabold text-base text-slate-855 dark:text-white">
+                            Share Your Experience
+                          </h3>
+                          <p className="text-[11px] text-slate-400">
+                            Since you've enrolled in this workshop, we would love to hear your feedback!
+                          </p>
+                        </div>
+
+                        {submitSuccess ? (
+                          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/30 dark:border-emerald-900/40 rounded-2xl text-center text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                            🎉 Your review has been submitted successfully. Thank you!
+                          </div>
+                        ) : (
+                          <form onSubmit={handleReviewSubmit} className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                                  Your Name
+                                </label>
+                                <input
+                                  type="text"
+                                  value={reviewName}
+                                  onChange={(e) => setReviewName(e.target.value)}
+                                  className="ui-input font-semibold pl-4!"
+                                  placeholder="Enter your name"
+                                  required
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                                  Rating
+                                </label>
+                                <div className="flex items-center gap-1.5 h-11">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      onClick={() => setReviewRating(star)}
+                                      className="text-xl transition-all hover:scale-120 cursor-pointer"
+                                    >
+                                      {star <= reviewRating ? (
+                                        <span className="text-amber-500">★</span>
+                                      ) : (
+                                        <span className="text-slate-300 dark:text-slate-700">☆</span>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                                Review Message
+                              </label>
+                              <textarea
+                                value={reviewText}
+                                onChange={(e) => setReviewText(e.target.value)}
+                                className="w-full p-3.5 text-sm bg-white dark:bg-slate-900 border border-brand-primary/15 dark:border-slate-800 rounded-2xl outline-none focus:border-brand-primary dark:focus:border-brand-secondary transition-colors text-slate-800 dark:text-slate-200 font-medium leading-relaxed resize-none"
+                                rows={3}
+                                placeholder="What did you think of the sessions? Share your abacus and calculation journey with us!"
+                                required
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={submitTestimonialMutation.isPending}
+                              className="ui-button-primary px-5 py-2.5 text-xs font-bold shrink-0 w-full sm:w-auto"
+                            >
+                              {submitTestimonialMutation.isPending ? 'Submitting Review...' : 'Submit Review'}
+                            </button>
+                          </form>
+                        )}
                       </div>
                     )}
 

@@ -42,12 +42,12 @@ const AppLayout = () => {
   const showSidebar = !isExamActive && isAuthenticated;
 
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-page-dark transition-colors duration-200 ${showSidebar ? 'flex flex-col lg:flex-row' : 'flex flex-col'}`}>
+    <div className={`h-screen overflow-hidden bg-slate-50 dark:bg-page-dark transition-colors duration-200 ${showSidebar ? 'flex flex-col lg:flex-row' : 'flex flex-col'}`}>
       {showSidebar && <Sidebar />}
       
-      <div className="grow flex flex-col min-w-0">
+      <div className="grow flex flex-col min-w-0 h-full overflow-hidden">
         {showSidebar && <Header />}
-        <div className="grow">
+        <div className="grow overflow-y-auto">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               {/* Entry Gate */}

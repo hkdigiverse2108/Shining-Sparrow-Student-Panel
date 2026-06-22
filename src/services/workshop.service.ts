@@ -26,8 +26,11 @@ const workshopService = {
 
   purchaseWorkshop: async (payload: PurchaseWorkshopPayload) => {
     const data = {
-      ...payload,
-      payment_method: payload.payment_method || 'razorpay',
+      workshopId: payload.workshop_id,
+      amount: payload.amount,
+      paymentId: payload.payment_id,
+      paymentMethod: payload.payment_method || 'razorpay',
+      finalAmount: payload.final_amount,
     };
     const response = await client.post('/workshop/purchase', data);
     return response.data;

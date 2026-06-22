@@ -11,6 +11,41 @@ import { pageChildVariants } from '../components/PageTransition';
 
 type FaqLang = 'en' | 'hi' | 'gu';
 
+interface Course {
+  _id: string;
+  name: string;
+  image?: string;
+  price: number;
+  enrolledLearners?: number;
+  satisfactionRate?: number;
+  description?: string;
+}
+
+interface Workshop {
+  _id: string;
+  title: string;
+  subTitle?: string;
+  image?: string;
+  price: number;
+  about?: string;
+  duration?: string;
+}
+
+interface Testimonial {
+  _id: string;
+  description: string;
+  name: string;
+  designation?: string;
+  image?: string;
+  rate?: number;
+}
+
+interface FAQ {
+  _id: string;
+  question: Record<string, string>;
+  answer: Record<string, string>;
+}
+
 const stripHtml = (html: string) => {
   if (!html) return '';
   return html.replace(/<[^>]*>/g, '').trim();
@@ -52,7 +87,7 @@ export const LandingPage = () => {
   };
 
   // Safe FAQ field retriever
-  const getFaqText = (field: any, lang: FaqLang) => {
+  const getFaqText = (field: Record<string, string> | null | undefined, lang: FaqLang) => {
     if (!field) return '';
     return field[lang] || field['en'] || '';
   };
@@ -65,8 +100,8 @@ export const LandingPage = () => {
       className="space-y-16 pb-20"
     >
       {/* Hero Banner Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-slate-900 to-cyan-900 text-white rounded-b-[40px] px-6 py-20 md:py-28 shadow-xl">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      <section className="relative overflow-hidden bg-linear-to-br from-indigo-900 via-slate-900 to-cyan-900 text-white rounded-b-[40px] px-6 py-20 md:py-28 shadow-xl">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-size-[16px_16px]"></div>
         
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
           <div className="space-y-6 text-center lg:text-left">
@@ -75,7 +110,7 @@ export const LandingPage = () => {
             </span>
             <h1 className="font-display font-extrabold text-4xl md:text-6xl leading-tight tracking-tight">
               Master calculation <br />
-              <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
                 With Your Fingers
               </span>
             </h1>
@@ -124,7 +159,7 @@ export const LandingPage = () => {
                 />
               </motion.div>
             ) : (
-              <div className="w-full max-w-md h-80 rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-tr from-indigo-800/40 to-cyan-800/40 border border-white/10 backdrop-blur flex items-center justify-center">
+              <div className="w-full max-w-md h-80 rounded-3xl overflow-hidden shadow-2xl bg-linear-to-tr from-indigo-800/40 to-cyan-800/40 border border-white/10 backdrop-blur flex items-center justify-center">
                 <div className="text-center space-y-2 p-6">
                   <div className="text-5xl animate-bounce">⚡</div>
                   <h3 className="font-display font-semibold text-lg">Interactive Learning</h3>
@@ -197,7 +232,7 @@ export const LandingPage = () => {
               </div>
             ) : coursesData?.data?.course_data?.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {coursesData.data.course_data.map((course: any) => (
+                {coursesData.data.course_data.map((course: Course) => (
                   <motion.div
                     key={course._id}
                     whileHover={{ y: -5 }}
@@ -252,7 +287,7 @@ export const LandingPage = () => {
               </div>
             ) : workshopsData?.data?.workshop_data?.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {workshopsData.data.workshop_data.map((workshop: any) => (
+                {workshopsData.data.workshop_data.map((workshop: Workshop) => (
                   <motion.div
                     key={workshop._id}
                     whileHover={{ y: -5 }}
@@ -358,7 +393,7 @@ export const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonialData.data.testimonial_data.map((test: any) => (
+            {testimonialData.data.testimonial_data.map((test: Testimonial) => (
               <div
                 key={test._id}
                 className="bg-white border dark:bg-slate-800 dark:border-slate-700 rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-4"
@@ -419,7 +454,7 @@ export const LandingPage = () => {
           </div>
 
           <div className="space-y-4">
-            {faqData.data.faq_data.map((faq: any) => {
+            {faqData.data.faq_data.map((faq: FAQ) => {
               const isOpen = openFaqId === faq._id;
               return (
                 <div
