@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
-import { Phone, Key, HelpCircle } from 'lucide-react';
+import { Phone, Key, HelpCircle, Mail, Lock, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 
@@ -21,14 +21,15 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber || !otr) {
-      showToast('Please enter both Phone Number and OTR code.', 'warning');
-      return;
-    }
-
     setLoading(true);
     try {
+      if (!phoneNumber || !otr) {
+        showToast('Please enter both Phone Number and OTR code.', 'warning');
+        setLoading(false);
+        return;
+      }
       const response = await login({ phoneNumber, otr });
+
       if (response && response.status === 200) {
         showToast('Login successful! Welcome back.', 'success');
         navigate(from, { replace: true });
@@ -36,7 +37,7 @@ export const LoginPage = () => {
         showToast(response.message || 'Login failed', 'error');
       }
     } catch (err: any) {
-      const errMsg = err.response?.data?.message || 'Invalid phone number or OTR code.';
+      const errMsg = err.response?.data?.message || 'Invalid credentials.';
       showToast(errMsg, 'error');
     } finally {
       setLoading(false);
@@ -95,7 +96,7 @@ export const LoginPage = () => {
           {/* OTR Code */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455 dark:text-slate-500">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-500">
                 OTR (One Time Registration) Code
               </label>
               <div className="group relative">
@@ -126,11 +127,11 @@ export const LoginPage = () => {
             disabled={loading}
             className="ui-button-primary w-full py-3.5 text-sm"
           >
-            {loading ? 'Entering classroom...' : 'Enter Classroom'}
+            {loading ? 'Signing in...' : 'Enter Classroom'}
           </button>
         </form>
 
-        {/* Switch to signup */}
+        {/* Switch to signup (student only) */}
         <div className="text-center text-xs text-slate-500 mt-4!">
           New student?{' '}
           <Link to="/signup" className="text-orange-600 dark:text-orange-400 font-bold hover:underline">

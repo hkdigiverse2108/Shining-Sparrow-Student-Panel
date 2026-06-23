@@ -227,7 +227,7 @@ export const SignupPage = () => {
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-500">
               School Name
-              <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-350 dark:text-slate-600">(optional)</span>
+              <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
             </label>
             <div className="relative">
               <School className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -268,7 +268,7 @@ export const SignupPage = () => {
               type="checkbox"
               checked={agreeTerms}
               onChange={(e) => setAgreeTerms(e.target.checked)}
-              className="mt-1 h-4 w-4 text-brand-primary focus:ring-brand-primary border-slate-350 dark:border-slate-700 rounded transition-colors"
+              className="mt-1 h-4 w-4 text-brand-primary focus:ring-brand-primary border-slate-400 dark:border-slate-700 rounded transition-colors"
             />
             <label htmlFor="agreeTerms" className="text-xs text-slate-500 dark:text-slate-400 select-none cursor-pointer">
               I agree to the Shining-Sparrow Terms of Service and Privacy Policy.
@@ -312,7 +312,7 @@ export const SignupPage = () => {
                 <h3 className="font-display font-extrabold text-2xl text-slate-900 dark:text-white">
                   Registration Successful!
                 </h3>
-                <p className="text-sm text-slate-550 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Your unique **One Time Registration (OTR) Code** has been generated. You will need this code along with your phone number to login.
                 </p>
               </div>

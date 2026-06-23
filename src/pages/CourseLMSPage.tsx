@@ -112,18 +112,98 @@ export const CourseLMSPage = () => {
   // Track previous course ID for adjusting state during render
   const [prevCourseId, setPrevCourseId] = useState<string | null>(null);
 
+  if (course && course._id !== prevCourseId) {
+    setPrevCourseId(course._id);
+
+    let firstUnlockedId: string | null = null;
+    const initialExpanded: Record<string, boolean> = {};
+
+    if (course.courseCurriculumIds && course.courseCurriculumIds.length > 0) {
+      for (const curr of course.courseCurriculumIds) {
+        const unlockedLesson = curr.courseLessonsAssigned?.find((l: Lesson) => l.isUnlocked);
+        if (unlockedLesson) {
+          firstUnlockedId = unlockedLesson._id;
+          initialExpanded[curr._id] = true;
+          break;
+        }
+      }
+    } else if (course.courseLessonIds && course.courseLessonIds.length > 0) {
+      const unlockedLesson = course.courseLessonIds.find((l: Lesson) => l.isUnlocked);
+      if (unlockedLesson) {
+        firstUnlockedId = unlockedLesson._id;
+      }
+    }
+
+    if (firstUnlockedId) {
+      setSelectedLessonId(firstUnlockedId);
+    }
+    if (Object.keys(initialExpanded).length > 0) {
+      setExpandedCurriculums(initialExpanded);
+    }
+  }
+
   // Fullscreen container logic for blocking YouTube interactions in fullscreen
   const playerContainerRef = React.useRef<HTMLDivElement>(null);
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   React.useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFs = !!document.fullscreenElement;
+      setIsFullscreen(isFs);
+      if (isFs) {
+        // Delegate focus to iframe or video when entering fullscreen
+        setTimeout(() => {
+          if (iframeRef.current) {
+            iframeRef.current.focus();
+          } else if (videoRef.current) {
+            videoRef.current.focus();
+          }
+        }, 150);
+      }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
+  }, []);
+
+  // Keyboard shortcut listener for Arrow keys, J/L keys (10s seek), and Space (play/pause)
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Handle when player container is in fullscreen
+      if (document.fullscreenElement && playerContainerRef.current?.contains(document.fullscreenElement)) {
+        const targetKeys = ['ArrowLeft', 'ArrowRight', 'j', 'J', 'l', 'L', ' ', 'k', 'K'];
+        if (targetKeys.includes(e.key)) {
+          if (iframeRef.current && document.activeElement !== iframeRef.current) {
+            iframeRef.current.focus();
+          } else if (videoRef.current) {
+            if (document.activeElement !== videoRef.current) {
+              videoRef.current.focus();
+            }
+            // Explicitly control HTML5 video skip
+            if (e.key === 'ArrowLeft' || e.key === 'j' || e.key === 'J') {
+              videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+              e.preventDefault();
+            } else if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
+              videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + 10);
+              e.preventDefault();
+            } else if (e.key === ' ' || e.key === 'k' || e.key === 'K') {
+              if (videoRef.current.paused) {
+                videoRef.current.play();
+              } else {
+                videoRef.current.pause();
+              }
+              e.preventDefault();
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, []);
 
   const toggleFullscreen = () => {
@@ -132,6 +212,10 @@ export const CourseLMSPage = () => {
     if (!document.fullscreenElement) {
       playerContainerRef.current.requestFullscreen().then(() => {
         setIsFullscreen(true);
+        setTimeout(() => {
+          if (iframeRef.current) iframeRef.current.focus();
+          else if (videoRef.current) videoRef.current.focus();
+        }, 150);
       }).catch((err) => {
         console.error("Error attempting to enable fullscreen:", err);
       });
@@ -171,39 +255,7 @@ export const CourseLMSPage = () => {
   const attempts = attemptsRes?.data?.attempt_data || [];
   const latestAttempt = attempts.length > 0 ? attempts[0] : null;
 
-  // Auto-select first unlocked lesson on load directly during render when course changes.
-  // This avoids calling setState inside useEffect, preventing cascading renders and linter warnings.
-  if (course && course._id !== prevCourseId) {
-    setPrevCourseId(course._id);
-    
-    let firstUnlockedId: string | null = null;
-    const initialExpanded: Record<string, boolean> = {};
-    
-    if (course.courseCurriculumIds && course.courseCurriculumIds.length > 0) {
-      // Merged Course
-      for (const curr of course.courseCurriculumIds) {
-        const unlockedLesson = curr.courseLessonsAssigned?.find((l: Lesson) => l.isUnlocked);
-        if (unlockedLesson) {
-          firstUnlockedId = unlockedLesson._id;
-          initialExpanded[curr._id] = true;
-          break;
-        }
-      }
-    } else if (course.courseLessonIds && course.courseLessonIds.length > 0) {
-      // Single Course
-      const unlockedLesson = course.courseLessonIds.find((l: Lesson) => l.isUnlocked);
-      if (unlockedLesson) {
-        firstUnlockedId = unlockedLesson._id;
-      }
-    }
 
-    if (firstUnlockedId) {
-      setSelectedLessonId(firstUnlockedId);
-    }
-    if (Object.keys(initialExpanded).length > 0) {
-      setExpandedCurriculums(initialExpanded);
-    }
-  }
 
   if (courseLoading) {
     return <Loader />;
@@ -455,10 +507,15 @@ export const CourseLMSPage = () => {
                   ref={playerContainerRef}
                   className="group relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border border-orange-100 dark:border-slate-800 shadow-lg"
                   onContextMenu={(e) => e.preventDefault()}
+                  onClick={() => {
+                    if (iframeRef.current) iframeRef.current.focus();
+                    else if (videoRef.current) videoRef.current.focus();
+                  }}
                 >
                   {activeLesson.videoLink.includes('youtube.com') || activeLesson.videoLink.includes('youtu.be') ? (
                     <>
                       <iframe
+                        ref={iframeRef}
                         src={getEmbedUrl(activeLesson.videoLink)}
                         title={activeLesson.title}
                         className="absolute inset-0 w-full h-full"
@@ -494,7 +551,7 @@ export const CourseLMSPage = () => {
                       >
                         {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                       </button>
-
+ 
                       {/* Invisible pointer-events overlays to capture any remaining clicks in those areas */}
                       <div className="absolute top-0 left-0 right-0 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
                       <div className="absolute bottom-0 left-0 w-48 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
@@ -502,6 +559,7 @@ export const CourseLMSPage = () => {
                     </>
                   ) : (
                     <video
+                      ref={videoRef}
                       src={activeLesson.videoLink}
                       controls
                       poster={activeLesson.thumbnail || undefined}
@@ -571,7 +629,7 @@ export const CourseLMSPage = () => {
             </>
           ) : (
             <div className="ui-card border border-dashed text-center py-24">
-              <HelpCircle className="text-slate-350 mx-auto mb-4" size={40} />
+              <HelpCircle className="text-slate-400 mx-auto mb-4" size={40} />
               <h3 className="font-bold text-slate-700 dark:text-slate-300">Select a Lesson</h3>
               <p className="text-xs text-slate-400 max-w-xs mx-auto mt-2">
                 Click on any unlocked lesson from the syllabus navigation sidebar to begin learning.

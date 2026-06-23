@@ -34,7 +34,7 @@ const settingsService = {
 
   getFAQs: async (params?: { page?: number; limit?: number; search?: string; type?: string; learningCatalogFilter?: string }) => {
     const response = await client.get('/faq/all', {
-      params: { type: 'course', ...params },
+      params,
     });
     return response.data;
   },

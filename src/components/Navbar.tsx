@@ -230,7 +230,7 @@ export const Navbar = () => {
 
             {isAuthenticated && student ? (
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-                <div className="px-4 py-2 bg-orange-50/50 dark:bg-slate-850 rounded-xl flex items-center justify-between">
+                <div className="px-4 py-2 bg-orange-50/50 dark:bg-slate-800 rounded-xl flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-slate-400 font-bold uppercase">OTR Login Code</span>
                     <span className="font-mono font-extrabold text-orange-600 dark:text-orange-400 tracking-wider text-base">{student.otr}</span>

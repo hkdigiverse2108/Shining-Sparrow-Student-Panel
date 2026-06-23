@@ -44,7 +44,7 @@ export const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = (
             {/* Close Button */}
             <button
               onClick={onCancel}
-              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:bg-slate-105 dark:hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <X size={18} />
             </button>
@@ -92,7 +92,7 @@ export const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = (
               </button>
               <button
                 onClick={onConfirm}
-                className="flex-1 py-3 border border-slate-200 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-350 hover:scale-[1.01] active:scale-95 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
+                className="flex-1 py-3 border border-slate-200 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:scale-[1.01] active:scale-95 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
               >
                 <LogOut size={14} />
                 Yes, Sign Out

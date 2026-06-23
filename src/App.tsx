@@ -17,11 +17,14 @@ import { CourseLMSPage } from './pages/CourseLMSPage';
 import { ExamInterfacePage } from './pages/ExamInterfacePage';
 import { WorkshopLMSPage } from './pages/WorkshopLMSPage';
 import { BlogDetailsPage } from './pages/BlogDetailsPage';
+import { ChatPage } from './pages/ChatPage';
+import { PaymentHistoryPage } from './pages/PaymentHistoryPage';
 
 // Context Providers
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
+import { ChatProvider } from './context/ChatContext';
 
 // Layout Wrapper
 const AppLayout = () => {
@@ -98,6 +101,16 @@ const AppLayout = () => {
                 } 
               />
               <Route 
+                path="/payments/history" 
+                element={
+                  <AuthGuard>
+                    <PageTransition>
+                      <PaymentHistoryPage />
+                    </PageTransition>
+                  </AuthGuard>
+                } 
+              />
+              <Route 
                 path="/courses/:id" 
                 element={
                   <AuthGuard>
@@ -147,6 +160,17 @@ const AppLayout = () => {
                   </AuthGuard>
                 } 
               />
+              <Route 
+                path="/chat" 
+                element={
+                  <AuthGuard>
+                    <PageTransition>
+                      <ChatPage />
+                    </PageTransition>
+                  </AuthGuard>
+                } 
+              />
+
               
               {/* Fallback */}
               <Route 
@@ -172,7 +196,9 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AppLayout />
+          <ChatProvider>
+            <AppLayout />
+          </ChatProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

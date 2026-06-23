@@ -7,20 +7,83 @@ import { Play, Download, FileText, ArrowLeft, Video } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 
-// Helper to parse YouTube URLs to embed URLs
-const getEmbedUrl = (url: string) => {
-  if (!url) return '';
-  if (url.includes('youtube.com/embed/')) return url;
+// Detect the type of link: 'youtube' | 'external-live' | 'vimeo' | 'twitch' | 'direct-video'
+const getLinkType = (url: string | null): 'youtube' | 'external-live' | 'vimeo' | 'twitch' | 'direct-video' => {
+  if (!url) return 'direct-video';
+  const u = url.toLowerCase();
   
-  let videoId = '';
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  
-  if (match && match[2].length === 11) {
-    videoId = match[2];
+  if (u.includes('youtube.com') || u.includes('youtu.be')) {
+    return 'youtube';
+  }
+  if (
+    u.includes('zoom.us') || 
+    u.includes('zoom.com') || 
+    u.includes('meet.google.com') || 
+    u.includes('teams.microsoft.com') || 
+    u.includes('teams.live.com') || 
+    u.includes('webex.com') ||
+    u.includes('discord.gg') ||
+    u.includes('discord.com') ||
+    u.includes('meet.jit.si')
+  ) {
+    return 'external-live';
+  }
+  if (u.includes('vimeo.com')) {
+    return 'vimeo';
+  }
+  if (u.includes('twitch.tv')) {
+    return 'twitch';
   }
   
-  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0` : url;
+  return 'direct-video';
+};
+
+// Helper to parse video/livestream URLs to embed URLs
+const getEmbedUrl = (url: string) => {
+  if (!url) return '';
+  
+  let embedUrl = url;
+  
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    if (url.includes('youtube.com/embed/')) return url;
+    
+    let videoId = '';
+    
+    // Check for youtube.com/live/VIDEO_ID
+    if (url.includes('youtube.com/live/')) {
+      const parts = url.split('youtube.com/live/');
+      if (parts.length > 1) {
+        videoId = parts[1].split(/[?#]/)[0];
+      }
+    } else {
+      // Standard youtube regexp
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      if (match && match[2].length === 11) {
+        videoId = match[2];
+      }
+    }
+    
+    if (videoId) {
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    }
+  } else if (url.includes('vimeo.com')) {
+    // Vimeo parser
+    const regExp = /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)(?:$|\/|\?)/;
+    const match = url.match(regExp);
+    if (match && match[3]) {
+      embedUrl = `https://player.vimeo.com/video/${match[3]}?autoplay=1`;
+    }
+  } else if (url.includes('twitch.tv')) {
+    // Twitch parser
+    const parts = url.split('twitch.tv/');
+    if (parts.length > 1) {
+      const channel = parts[1].split(/[?#]/)[0];
+      embedUrl = `https://player.twitch.tv/?channel=${channel}&parent=${window.location.hostname}&autoplay=true`;
+    }
+  }
+  
+  return embedUrl;
 };
 
 interface WorkshopCurriculum {
@@ -112,10 +175,47 @@ export const WorkshopLMSPage = () => {
                 className="group relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border dark:border-slate-800 shadow-lg"
                 onContextMenu={(e) => e.preventDefault()}
               >
-                {currentVideoUrl.includes('youtube.com') || currentVideoUrl.includes('youtu.be') ? (
+                {getLinkType(currentVideoUrl) === 'external-live' ? (
+                  <div className="absolute inset-0 bg-linear-to-br from-card-dark to-slate-950 dark:from-page-dark dark:to-slate-950 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+                    {/* Animated background decoration */}
+                    <div className="absolute w-96 h-96 rounded-full bg-brand-primary/15 blur-3xl pointer-events-none animate-pulse-amber" />
+                    
+                    <div className="relative z-10 max-w-md space-y-5">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-full animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                        <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-red-400">🔴 Live Interactive Class</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="font-display font-extrabold text-lg sm:text-2xl leading-snug text-white dark:text-white">
+                          Live Interactive Lecture
+                        </h3>
+                        <p className="text-[11px] sm:text-xs text-slate-300 dark:text-slate-400 leading-normal max-w-xs mx-auto">
+                          This workshop session is currently broadcasting live. Click the button below to join the virtual lecture.
+                        </p>
+                      </div>
+
+                      <div className="pt-1">
+                        <a
+                          href={currentVideoUrl || undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary hover:bg-brand-primary/90 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-brand-primary/25 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
+                        >
+                          <span>Join Live Lecture Now</span>
+                          <Play size={12} className="fill-current animate-pulse" />
+                        </a>
+                      </div>
+                      
+                      <span className="block text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-wider uppercase">
+                        Stream Host: {currentVideoUrl?.includes('meet.google') ? 'Google Meet' : currentVideoUrl?.includes('zoom') ? 'Zoom' : 'External Live Platform'}
+                      </span>
+                    </div>
+                  </div>
+                ) : getLinkType(currentVideoUrl) === 'youtube' || getLinkType(currentVideoUrl) === 'vimeo' || getLinkType(currentVideoUrl) === 'twitch' ? (
                   <>
                     <iframe
-                       src={getEmbedUrl(currentVideoUrl)}
+                      src={getEmbedUrl(currentVideoUrl || '')}
                       title={currentVideoTitle || 'Workshop video'}
                       className="absolute inset-0 w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -148,7 +248,7 @@ export const WorkshopLMSPage = () => {
                   </>
                 ) : (
                   <video
-                    src={currentVideoUrl}
+                    src={currentVideoUrl || undefined}
                     controls
                     className="absolute inset-0 w-full h-full"
                   ></video>
@@ -224,7 +324,7 @@ export const WorkshopLMSPage = () => {
                     className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left transition-all ${
                       isActive
                         ? 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:border-brand-primary/45 dark:text-brand-secondary'
-                        : 'bg-white dark:bg-[#120b08] border-slate-100 dark:border-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                        : 'bg-white dark:bg-card-dark border-slate-100 dark:border-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className={`p-2.5 rounded-xl shrink-0 ${isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 dark:bg-slate-900'}`}>

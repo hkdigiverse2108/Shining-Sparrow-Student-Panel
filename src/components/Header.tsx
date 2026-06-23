@@ -128,7 +128,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="px-6 py-4 flex items-center justify-between border-b border-orange-100/50 dark:border-slate-850/60 bg-white/70 dark:bg-page-dark/70 backdrop-blur-md sticky top-0 z-20 transition-all duration-200">
+    <header className="px-6 py-4 flex items-center justify-between border-b border-orange-100/50 dark:border-slate-800/60 bg-white/70 dark:bg-page-dark/70 backdrop-blur-md sticky top-0 z-20 transition-all duration-200">
       
       {/* Left Side: Breadcrumb details */}
       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
@@ -136,7 +136,7 @@ export const Header = () => {
           {parent}
         </Link>
         <ChevronRight size={14} className="text-slate-300" />
-        <span className="text-slate-850 dark:text-slate-200 font-extrabold">{child}</span>
+        <span className="text-slate-800 dark:text-slate-200 font-extrabold">{child}</span>
       </div>
 
       {/* Right Side: Date, search box mockup, and notifications */}
@@ -180,12 +180,12 @@ export const Header = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-card-dark border border-orange-100/50 dark:border-slate-850/80 rounded-3xl shadow-[0_15px_50px_rgba(232,100,36,0.12)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)] z-50 overflow-hidden"
+                className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-card-dark border border-orange-100/50 dark:border-slate-800/80 rounded-3xl shadow-[0_15px_50px_rgba(232,100,36,0.12)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)] z-50 overflow-hidden"
               >
                 {/* Header */}
-                <div className="px-5 py-4 border-b border-orange-100/40 dark:border-slate-850/60 bg-orange-50/20 dark:bg-slate-900/20 flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-orange-100/40 dark:border-slate-800/60 bg-orange-50/20 dark:bg-slate-900/20 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-slate-850 dark:text-white">Sparrow Alerts</span>
+                    <span className="text-sm font-extrabold text-slate-800 dark:text-white">Sparrow Alerts</span>
                     {unreadCount > 0 && (
                       <span className="px-2 py-0.5 bg-brand-primary/10 text-brand-primary dark:bg-brand-primary/20 dark:text-brand-secondary rounded-full text-[10px] font-black">
                         {unreadCount} New
@@ -216,7 +216,7 @@ export const Header = () => {
                   </div>
                 </div>
                 {/* Notifications List */}
-                <div className="max-h-90 overflow-y-auto divide-y divide-orange-100/20 dark:divide-slate-850/30">
+                <div className="max-h-90 overflow-y-auto divide-y divide-orange-100/20 dark:divide-slate-800/30">
                   {notifications.length === 0 ? (
                     <div className="px-6 py-10 flex flex-col items-center text-center space-y-3">
                       <div className="relative">
@@ -250,7 +250,7 @@ export const Header = () => {
                           key={n._id}
                           onClick={() => handleToggleRead(n._id)}
                           className={`px-5 py-3.5 flex items-start gap-3.5 hover:bg-orange-50/10 dark:hover:bg-slate-800/20 cursor-pointer transition-colors duration-200 relative group/item ${
-                            !n.isRead ? 'bg-orange-50/10 dark:bg-slate-850/10' : ''
+                            !n.isRead ? 'bg-orange-50/10 dark:bg-slate-800/10' : ''
                           }`}
                         >
                           {/* Left icon wrapper */}
@@ -261,14 +261,14 @@ export const Header = () => {
                           {/* Content */}
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-start justify-between gap-2">
-                              <h5 className={`text-xs leading-tight line-clamp-1 ${!n.isRead ? 'font-black text-slate-850 dark:text-white' : 'font-semibold text-slate-550 dark:text-slate-400'}`}>
+                              <h5 className={`text-xs leading-tight line-clamp-1 ${!n.isRead ? 'font-black text-slate-800 dark:text-white' : 'font-semibold text-slate-500 dark:text-slate-400'}`}>
                                 {n.title}
                               </h5>
                               <span className="text-[9px] text-slate-400 dark:text-slate-500 shrink-0 font-medium whitespace-nowrap mt-0.5">
                                 {formatTimeAgo(n.createdAt)}
                               </span>
                             </div>
-                            <p className={`text-[10px] leading-relaxed line-clamp-2 ${!n.isRead ? 'text-slate-650 dark:text-slate-350 font-medium' : 'text-slate-400 dark:text-slate-500'}`}>
+                            <p className={`text-[10px] leading-relaxed line-clamp-2 ${!n.isRead ? 'text-slate-600 dark:text-slate-400 font-medium' : 'text-slate-400 dark:text-slate-500'}`}>
                               {n.message}
                             </p>
                           </div>
@@ -280,7 +280,7 @@ export const Header = () => {
                             )}
                             <button
                               onClick={(e) => handleDelete(n._id, e)}
-                              className="p-1 rounded-md text-slate-350 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 opacity-0 group-hover/item:opacity-100 transition-all cursor-pointer"
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 opacity-0 group-hover/item:opacity-100 transition-all cursor-pointer"
                               title="Delete notification"
                             >
                               <X size={10} />

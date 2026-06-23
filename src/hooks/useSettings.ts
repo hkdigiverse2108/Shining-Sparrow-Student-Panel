@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import settingsService from '../services/settings.service';
+import authService from '../services/auth.service';
 import type { ContactUsPayload } from '../services/settings.service';
 
 export const useSettings = () => {
@@ -45,5 +46,12 @@ export const useSubmitTestimonial = () => {
       queryClient.invalidateQueries({ queryKey: ['workshop', variables.learningCatalogId] });
       queryClient.invalidateQueries({ queryKey: ['course', variables.learningCatalogId] });
     },
+  });
+};
+
+export const usePaymentHistory = () => {
+  return useQuery({
+    queryKey: ['payment-history'],
+    queryFn: () => authService.getPaymentHistory(),
   });
 };

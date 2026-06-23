@@ -2,7 +2,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
 import authService from '../services/auth.service';
-import type { SignupPayload, LoginPayload, UpdateProfilePayload, ChangePasswordPayload } from '../services/auth.service';
+import type { SignupPayload, LoginPayload, AdminLoginPayload, UpdateProfilePayload, ChangePasswordPayload } from '../services/auth.service';
 
 export interface StudentProfile {
   _id: string;
@@ -26,6 +26,8 @@ interface AuthContextType {
   isLoading: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   login: (payload: LoginPayload) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminLogin: (payload: AdminLoginPayload) => Promise<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signup: (payload: SignupPayload) => Promise<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,6 +69,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const response = await authService.login(payload);
+      if (response && response.status === 200) {
+        const userToken = response.data.token;
+        const userProfile = response.data;
+        
+        localStorage.setItem('shining_sparrow_student_token', userToken);
+        localStorage.setItem('shining_sparrow_student_profile', JSON.stringify(userProfile));
+        
+        setToken(userToken);
+        setStudent(userProfile);
+      }
+      return response;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const adminLogin = async (payload: AdminLoginPayload) => {
+    setIsLoading(true);
+    try {
+      const response = await authService.adminLogin(payload);
       if (response && response.status === 200) {
         const userToken = response.data.token;
         const userProfile = response.data;
@@ -140,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         isLoading,
         login,
+        adminLogin,
         signup,
         updateProfile,
         changePassword,

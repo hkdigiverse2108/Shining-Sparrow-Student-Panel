@@ -52,7 +52,7 @@ export const BlogDetailsPage = () => {
       <motion.div variants={pageChildVariants} className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-8">
         <button
           onClick={() => navigate('/dashboard?tab=blogs')}
-          className="inline-flex items-center gap-2 px-4 py-2 border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors text-xs font-bold shadow-xs cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors text-xs font-bold shadow-xs cursor-pointer"
         >
           <ArrowLeft size={14} /> Back to Dashboard
         </button>
@@ -122,7 +122,7 @@ export const BlogDetailsPage = () => {
               {/* Content Body */}
               {blog.content && (
                 <div 
-                  className="text-slate-600 dark:text-slate-350 text-sm sm:text-base leading-relaxed space-y-4 font-medium text-justify rich-text-content"
+                  className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed space-y-4 font-medium text-justify rich-text-content"
                   dangerouslySetInnerHTML={{ __html: blog.content }}
                 />
               )}
@@ -179,7 +179,7 @@ export const BlogDetailsPage = () => {
               <div className="space-y-3.5 text-xs text-slate-500 dark:text-slate-400 pt-2">
                 <div className="flex justify-between items-center py-1.5 border-b dark:border-slate-800/40">
                   <span className="font-semibold flex items-center gap-1.5"><Calendar size={14} /> Published</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-350">{formattedDate}</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-400">{formattedDate}</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b dark:border-slate-800/40">
                   <span className="font-semibold flex items-center gap-1.5">🏷️ Category</span>
@@ -189,7 +189,7 @@ export const BlogDetailsPage = () => {
                 </div>
                 <div className="flex justify-between items-center py-1.5">
                   <span className="font-semibold flex items-center gap-1.5"><Clock size={14} /> Read Time</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-350">3-4 min read</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-400">3-4 min read</span>
                 </div>
               </div>
 

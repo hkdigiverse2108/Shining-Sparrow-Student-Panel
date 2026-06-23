@@ -7,10 +7,13 @@ import { useBlogs } from '../hooks/useBlogs';
 import { LogoutConfirmationModal } from './LogoutConfirmationModal';
 import { 
   BookOpen, ShoppingBag, Tv, Newspaper, User, LogOut, Sun, Moon, 
-  Menu, X, Copy, Check, ChevronRight, ChevronLeft
+  Menu, X, Copy, Check, ChevronRight, ChevronLeft, MessageSquare,
+  CreditCard
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { handleImageError, getAvatarFallback } from '../utils/fallbacks';
+
+import { useChatContext } from '../context/ChatContext';
 
 export const Sidebar = () => {
   const { student, isAuthenticated, logout } = useAuth();
@@ -18,11 +21,12 @@ export const Sidebar = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadRooms } = useChatContext();
 
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   
-  // Fetch actual blog count
+  // Fetch actual blog blogCount
   const { data: blogsRes } = useBlogs({ page: 1, limit: 1 });
   const blogCount = blogsRes?.data?.totalData || blogsRes?.data?.blog_data?.length || 0;
   
@@ -90,11 +94,24 @@ export const Sidebar = () => {
       search: 'tab=workshops',
     },
     {
+      label: 'Chat',
+      icon: MessageSquare,
+      path: '/chat',
+      search: '',
+      badge: unreadRooms.length > 0 ? String(unreadRooms.length) : undefined,
+    },
+    {
       label: 'Blogs & Updates',
       icon: Newspaper,
       path: '/dashboard',
       search: 'tab=blogs',
       badge: blogCount > 0 ? String(blogCount) : undefined,
+    },
+    {
+      label: 'Payment History',
+      icon: CreditCard,
+      path: '/payments/history',
+      search: '',
     },
     {
       label: 'My Profile',
@@ -103,6 +120,8 @@ export const Sidebar = () => {
       search: '',
     },
   ];
+
+
 
   const renderSidebarContent = (collapsed = false) => (
     <div className={`flex flex-col h-full justify-between transition-all duration-300 ${collapsed ? 'px-3 py-6' : 'p-6'}`}>
@@ -143,7 +162,7 @@ export const Sidebar = () => {
                 } ${
                   active
                     ? 'bg-brand-primary text-white shadow-[0_4px_20px_rgba(232,100,36,0.25)] dark:shadow-[0_0_20px_rgba(232,100,36,0.35)] dark:border dark:border-brand-primary/30'
-                    : 'text-slate-655 dark:text-slate-350 hover:bg-orange-50/50 dark:hover:bg-orange-950/10 hover:text-brand-primary dark:hover:text-brand-secondary'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-orange-50/50 dark:hover:bg-orange-950/10 hover:text-brand-primary dark:hover:text-brand-secondary'
                 }`}
               >
                 <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
@@ -236,7 +255,7 @@ export const Sidebar = () => {
                 onError={(e) => handleImageError(e, getAvatarFallback(student.fullName))}
               />
               <div className="min-w-0">
-                <span className="block text-xs font-extrabold text-slate-850 dark:text-slate-200 truncate leading-tight">
+                <span className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate leading-tight">
                   {student.fullName}
                 </span>
                 <span className="block text-[10px] text-slate-405 dark:text-slate-400 uppercase font-bold tracking-wider mt-0.5">
@@ -267,7 +286,7 @@ export const Sidebar = () => {
           {/* Theme Toggler */}
           <button
             onClick={toggleTheme}
-            className={`relative flex items-center rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-orange-50/50 dark:hover:bg-orange-950/10 transition-colors group ${
+            className={`relative flex items-center rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-orange-50/50 dark:hover:bg-orange-950/10 transition-colors group ${
               collapsed ? 'w-12 h-12 justify-center' : 'justify-between px-4 py-2.5 w-full'
             }`}
           >
@@ -328,7 +347,7 @@ export const Sidebar = () => {
       </aside>
 
       {/* Mobile Top Navigation bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 h-16 bg-white dark:bg-page-dark border-b border-orange-100 dark:border-slate-850 w-full z-30 transition-colors duration-200">
+      <div className="lg:hidden flex items-center justify-between px-4 h-16 bg-white dark:bg-page-dark border-b border-orange-100 dark:border-slate-800 w-full z-30 transition-colors duration-200">
         <Link to="/dashboard">
           <img
             src="/logo.png"

@@ -18,6 +18,11 @@ export interface LoginPayload {
   otr: string;
 }
 
+export interface AdminLoginPayload {
+  email: string;
+  password: string;
+}
+
 export interface UpdateProfilePayload {
   fullName: string;
   phone: string;
@@ -56,6 +61,16 @@ const authService = {
     return response.data;
   },
 
+  adminLogin: async (payload: AdminLoginPayload) => {
+    const data = {
+      userType: 'admin',
+      email: payload.email,
+      password: payload.password,
+    };
+    const response = await client.post('/auth/login', data);
+    return response.data;
+  },
+
   updateProfile: async (payload: UpdateProfilePayload) => {
     const data = {
       fullName: payload.fullName,
@@ -73,6 +88,11 @@ const authService = {
 
   changePassword: async (payload: ChangePasswordPayload) => {
     const response = await client.post('/auth/change-password', payload);
+    return response.data;
+  },
+
+  getPaymentHistory: async () => {
+    const response = await client.get('/user/payments/history');
     return response.data;
   },
 };

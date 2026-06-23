@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMyCourses, useCourses } from '../hooks/useCourses';
 import { useMyWorkshops, useWorkshops } from '../hooks/useWorkshops';
 import { useBlogs } from '../hooks/useBlogs';
+import { useHeroBanners } from '../hooks/useSettings';
 import { CardSkeleton } from '../components/Loader';
 import { 
-  Video, Award, Clock, ArrowRight, Lock, Flame, ArrowUpRight, Calendar, BookOpen
+  Video, Award, Clock, ArrowRight, Lock, Flame, ArrowUpRight, Calendar, BookOpen, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import { 
   handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, getAvatarFallback 
@@ -73,6 +74,166 @@ const stripHtml = (html: string) => {
   return html.replace(/<[^>]*>/g, '').trim();
 };
 
+interface BannerImage {
+  _id: string;
+  title?: string;
+  description?: string;
+  images?: string[];
+  link?: string;
+  image?: string;
+}
+
+const HeroBannerCarousel = ({ banners }: { banners: BannerImage[] }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const allSlides = React.useMemo(() => {
+    const slides: { image: string; title?: string; description?: string; link?: string }[] = [];
+    banners.forEach((banner) => {
+      if (banner.images && banner.images.length > 0) {
+        banner.images.forEach((img) => {
+          slides.push({
+            image: img,
+            title: banner.title,
+            description: banner.description,
+            link: banner.link,
+          });
+        });
+      } else if (banner.image) {
+        slides.push({
+          image: banner.image,
+          title: banner.title,
+          description: banner.description,
+          link: banner.link,
+        });
+      }
+    });
+    return slides;
+  }, [banners]);
+
+  const goTo = useCallback((index: number) => {
+    setCurrentIndex(index);
+    setIsAutoPlaying(false);
+    setTimeout(() => setIsAutoPlaying(true), 6000);
+  }, []);
+
+  const goPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev === 0 ? allSlides.length - 1 : prev - 1));
+  }, [allSlides.length]);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev === allSlides.length - 1 ? 0 : prev + 1));
+  }, [allSlides.length]);
+
+  useEffect(() => {
+    if (!isAutoPlaying || allSlides.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev === allSlides.length - 1 ? 0 : prev + 1));
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [isAutoPlaying, allSlides.length]);
+
+  if (allSlides.length === 0) return null;
+
+  const currentSlide = allSlides[currentIndex];
+
+  return (
+    <motion.div
+      variants={pageChildVariants}
+      className="relative w-full rounded-3xl overflow-hidden bg-slate-900 shadow-lg group"
+    >
+      {/* Banner Image */}
+      <div className="relative aspect-[3/1] sm:aspect-[4/1] lg:aspect-[5/1] w-full">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentIndex}
+            src={currentSlide.image}
+            alt={currentSlide.title || 'Banner'}
+            className="absolute inset-0 w-full h-full object-cover"
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.5 }}
+          />
+        </AnimatePresence>
+
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-linear-to-r from-slate-950/80 via-slate-950/40 to-transparent" />
+
+        {/* Text content overlay */}
+        {(currentSlide.title || currentSlide.description) && (
+          <div className="absolute inset-0 flex items-center p-6 sm:p-8 lg:p-10">
+            <div className="max-w-lg space-y-3">
+              {currentSlide.title && (
+                <h2 className="font-display font-extrabold text-lg sm:text-xl lg:text-2xl text-white leading-tight">
+                  {currentSlide.title}
+                </h2>
+              )}
+              {currentSlide.description && (
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed line-clamp-2">
+                  {stripHtml(currentSlide.description)}
+                </p>
+              )}
+              {currentSlide.link && (
+                <a
+                  href={currentSlide.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs rounded-xl shadow-lg shadow-brand-primary/25 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
+                >
+                  Learn More <ArrowRight size={14} />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Branding watermark */}
+        <div className="absolute bottom-3 right-3 z-10 pointer-events-none select-none">
+          <div className="px-3 py-1.5 bg-slate-950/60 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-white/80">
+            Shining Sparrow
+          </div>
+        </div>
+
+        {/* Navigation arrows */}
+        {allSlides.length > 1 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 bg-slate-950/50 hover:bg-slate-950/70 backdrop-blur-md text-white rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 bg-slate-950/50 hover:bg-slate-950/70 backdrop-blur-md text-white rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Navigation dots */}
+      {allSlides.length > 1 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+          {allSlides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goTo(idx)}
+              className={`transition-all duration-300 rounded-full cursor-pointer ${
+                idx === currentIndex
+                  ? 'w-6 h-2 bg-brand-primary'
+                  : 'w-2 h-2 bg-white/40 hover:bg-white/60'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
 const cardContainerVariants = {
   initial: { opacity: 0 },
   animate: {
@@ -123,6 +284,10 @@ export const Dashboard = () => {
   const { data: blogsRes, isLoading: blogsLoading } = useBlogs({ page: 1, limit: 100 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const blogs = (blogsRes?.data?.blog_data || []) as any[];
+
+  // 4. Hero Banners
+  const { data: bannerRes } = useHeroBanners({ page: 1, limit: 5, type: 'app' });
+  const banners = (bannerRes?.data?.hero_banner_data || []) as BannerImage[];
 
   // Statistics & progress calculations
   const totalEnrolled = enrolledCourses.length + enrolledWorkshops.length;
@@ -223,6 +388,9 @@ export const Dashboard = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Hero Banner Carousel */}
+      {activeTab === 'classroom' && banners.length > 0 && <HeroBannerCarousel banners={banners} />}
 
       {/* 2. DYNAMIC CONTENT MAIN DISPLAY */}
       {showSkeleton ? (
@@ -483,13 +651,21 @@ export const Dashboard = () => {
             {/* VIEW B: DIRECT COURSE RECOMMENDATIONS CATALOG */}
             {activeTab === 'buy-courses' && (
               <div className="space-y-6">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                    Courses Available for Instant Purchase
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-400">
-                    Unlock structural abacus and finger math courses with Secure Razorpay Checkout.
-                  </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary">
+                        <BookOpen size={14} />
+                      </span>
+                      Courses Available for Instant Purchase
+                    </h3>
+                    <p className="text-xs text-slate-400 dark:text-slate-400">
+                      Unlock structural abacus and finger math courses with Secure Razorpay Checkout.
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
+                    {availableCourses.length} Course{availableCourses.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
 
                 {availableCourses.length > 0 ? (
@@ -497,38 +673,56 @@ export const Dashboard = () => {
                     variants={cardContainerVariants}
                     initial="initial"
                     animate="animate"
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
                     {availableCourses.map((course: CourseItem) => (
                       <motion.div
                         key={course._id}
                         variants={cardItemVariants}
-                        className="ui-card ui-card-hover flex flex-col justify-between space-y-4 relative group"
+                        className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
                       >
                         <div className="space-y-4">
-                          <div className="h-36 bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                          <div className="h-48 bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                             <img
                               src={course.image || FALLBACK_COURSE_IMAGE}
                               alt={course.name}
-                              className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                               onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
                             />
-                            <div className="absolute top-2.5 right-2.5 px-3 py-1 bg-brand-primary text-white rounded-full text-xs font-black shadow-md">
+                            {/* Gradient overlay for better badge readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+
+                            {/* Price badge - top right */}
+                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-primary to-orange-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-primary/25 backdrop-blur-sm">
                               ₹{course.price}
                             </div>
-                            <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white rounded-md text-[9px] font-black uppercase tracking-wider">
+
+                            {/* Level badge - bottom left */}
+                            <div className="absolute bottom-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-md">
                               {course.level || 'All Levels'}
                             </div>
+
+                            {/* Popular indicator - top left */}
+                            {(course.enrolledLearners || 250) > 200 && (
+                              <div className="absolute top-3 left-3 px-2.5 py-1 bg-amber-400 text-amber-900 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
+                                <Flame size={10} className="fill-current" /> Popular
+                              </div>
+                            )}
                           </div>
 
-                          <div className="space-y-2">
-                            <h4 className="font-display font-black text-sm text-slate-800 dark:text-white line-clamp-1 leading-snug group-hover:text-brand-primary transition-colors">
+                          <div className="space-y-2.5 px-1">
+                            <h4 className="font-display font-black text-[15px] text-slate-800 dark:text-white line-clamp-1 leading-snug group-hover:text-brand-primary transition-colors duration-300">
                               {course.name}
                             </h4>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold">
-                              <span className="flex items-center gap-1">👥 {course.enrolledLearners || 250}+ Learners</span>
-                              <span>•</span>
-                              <span className="text-emerald-500">🌟 {course.satisfactionRate || 98}% Rate</span>
+                            <div className="flex items-center gap-3 text-[11px] text-slate-400 font-semibold">
+                              <span className="flex items-center gap-1">
+                                <span className="w-4 h-4 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-[8px]">👥</span>
+                                {course.enrolledLearners || 250}+ Learners
+                              </span>
+                              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                ★ {course.satisfactionRate || 98}%
+                              </span>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                               {stripHtml(course.description || '')}
@@ -536,20 +730,24 @@ export const Dashboard = () => {
                           </div>
                         </div>
 
-                        <div className="pt-3.5 border-t border-orange-100/30 dark:border-slate-800/40">
+                        <div className="pt-4 border-t border-orange-100/20 dark:border-slate-800/30 px-1">
                           <Link
                             to={`/courses/${course._id}`}
-                            className="ui-button-outline w-full py-2.5 text-xs flex items-center justify-center gap-1.5"
+                            className="group/btn relative w-full py-3 text-xs font-black flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-brand-primary dark:hover:bg-brand-primary text-slate-700 dark:text-slate-200 hover:text-white rounded-xl transition-all duration-300 border border-slate-200/60 dark:border-slate-700/50 hover:border-brand-primary hover:shadow-lg hover:shadow-brand-primary/20"
                           >
-                            <Lock size={12} className="shrink-0" /> Unlock Curriculum
+                            <Lock size={13} className="shrink-0 group-hover/btn:hidden transition-all" />
+                            <ArrowRight size={13} className="shrink-0 hidden group-hover/btn:block transition-all" />
+                            Unlock Curriculum
                           </Link>
                         </div>
                       </motion.div>
                     ))}
                   </motion.div>
                 ) : (
-                  <div className="text-center py-12 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 text-slate-400 text-xs">
-                    🎉 You have unlocked all our structural abacus math courses!
+                  <div className="text-center py-16 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 space-y-3">
+                    <span className="text-4xl block">🎉</span>
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">You have unlocked all our courses!</p>
+                    <p className="text-xs text-slate-400">Check back later for new programs.</p>
                   </div>
                 )}
               </div>
@@ -558,13 +756,21 @@ export const Dashboard = () => {
             {/* VIEW C: WORKSHOPS CATALOG */}
             {activeTab === 'workshops' && (
               <div className="space-y-6">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                    Direct Workshops Catalog
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-400">
-                    Live interactive streams and classroom workshops to level up finger calculation.
-                  </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-brand-secondary/10 text-brand-secondary">
+                        <Video size={14} />
+                      </span>
+                      Direct Workshops Catalog
+                    </h3>
+                    <p className="text-xs text-slate-400 dark:text-slate-400">
+                      Live interactive streams and classroom workshops to level up finger calculation.
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-brand-secondary bg-brand-secondary/10 px-3 py-1.5 rounded-full">
+                    {availableWorkshops.length} Workshop{availableWorkshops.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
 
                 {availableWorkshops.length > 0 ? (
@@ -572,35 +778,46 @@ export const Dashboard = () => {
                     variants={cardContainerVariants}
                     initial="initial"
                     animate="animate"
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
                     {availableWorkshops.map((workshop: WorkshopItem) => (
                       <motion.div
                         key={workshop._id}
                         variants={cardItemVariants}
-                        className="ui-card ui-card-hover flex flex-col justify-between space-y-4 relative group"
+                        className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
                       >
                         <div className="space-y-4">
-                          <div className="h-36 bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                          <div className="h-48 bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                             <img
                               src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
                               alt={workshop.title}
-                              className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                               onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
                             />
-                            <div className="absolute top-2.5 right-2.5 px-3 py-1 bg-brand-primary text-white rounded-full text-xs font-black shadow-md">
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+
+                            {/* Price badge */}
+                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-secondary to-amber-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-secondary/25 backdrop-blur-sm">
                               ₹{workshop.price}
                             </div>
-                            <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white rounded-md text-[9px] font-black uppercase tracking-wider">
-                              Live Class
+
+                            {/* Live indicator - top left */}
+                            <div className="absolute top-3 left-3 px-2.5 py-1 bg-red-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider shadow-md flex items-center gap-1.5 animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white" /> Live Class
+                            </div>
+
+                            {/* Duration badge - bottom left */}
+                            <div className="absolute bottom-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-white rounded-lg text-[10px] font-black shadow-md">
+                              {workshop.duration || 'Full Session'}
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <h4 className="font-display font-black text-sm text-slate-800 dark:text-white line-clamp-1 leading-snug group-hover:text-brand-secondary transition-colors">
+                          <div className="space-y-2.5 px-1">
+                            <h4 className="font-display font-black text-[15px] text-slate-800 dark:text-white line-clamp-1 leading-snug group-hover:text-brand-secondary transition-colors duration-300">
                               {workshop.title}
                             </h4>
-                            <p className="text-[10px] text-brand-secondary font-bold uppercase tracking-wider">
+                            <p className="text-[11px] text-brand-secondary font-bold uppercase tracking-wider">
                               {workshop.subTitle || 'Interactive Lecture Stream'}
                             </p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
@@ -609,20 +826,24 @@ export const Dashboard = () => {
                           </div>
                         </div>
 
-                        <div className="pt-3.5 border-t border-orange-100/30 dark:border-slate-800/40">
+                        <div className="pt-4 border-t border-orange-100/20 dark:border-slate-800/30 px-1">
                           <Link
                             to={`/courses/${workshop._id}?type=workshop`}
-                            className="ui-button-outline w-full py-2.5 text-xs flex items-center justify-center gap-1.5"
+                            className="group/btn relative w-full py-3 text-xs font-black flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-brand-secondary dark:hover:bg-brand-secondary text-slate-700 dark:text-slate-200 hover:text-brand-dark rounded-xl transition-all duration-300 border border-slate-200/60 dark:border-slate-700/50 hover:border-brand-secondary hover:shadow-lg hover:shadow-brand-secondary/20"
                           >
-                            <Lock size={12} className="shrink-0" /> Unlock Session
+                            <Lock size={13} className="shrink-0 group-hover/btn:hidden transition-all" />
+                            <ArrowRight size={13} className="shrink-0 hidden group-hover/btn:block transition-all" />
+                            Unlock Session
                           </Link>
                         </div>
                       </motion.div>
                     ))}
                   </motion.div>
                 ) : (
-                  <div className="text-center py-12 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 text-slate-400 text-xs">
-                    🎉 You have enrolled in all live abacus math workshops!
+                  <div className="text-center py-16 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 space-y-3">
+                    <span className="text-4xl block">🎉</span>
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">You have enrolled in all live workshops!</p>
+                    <p className="text-xs text-slate-400">Check back later for new sessions.</p>
                   </div>
                 )}
               </div>
@@ -696,7 +917,7 @@ export const Dashboard = () => {
                                   </span>
                                 </div>
                                 
-                                <h4 className="font-display font-black text-base text-slate-850 dark:text-white leading-snug group-hover:text-brand-primary transition-colors duration-300 line-clamp-2 min-h-11">
+                                <h4 className="font-display font-black text-base text-slate-800 dark:text-white leading-snug group-hover:text-brand-primary transition-colors duration-300 line-clamp-2 min-h-11">
                                   {blog.title}
                                 </h4>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
@@ -833,7 +1054,7 @@ export const Dashboard = () => {
                     <p className="font-extrabold text-slate-800 dark:text-slate-200">
                       How do I unlock intermediate abacus levels?
                     </p>
-                    <p className="text-slate-550 dark:text-slate-400">
+                    <p className="text-slate-500 dark:text-slate-400">
                       Finish all current course lessons and score above 80% on the final timed assessments.
                     </p>
                   </div>
@@ -841,7 +1062,7 @@ export const Dashboard = () => {
                     <p className="font-extrabold text-slate-800 dark:text-slate-200">
                       Where is my Razorpay receipt?
                     </p>
-                    <p className="text-slate-550 dark:text-slate-400">
+                    <p className="text-slate-500 dark:text-slate-400">
                       Sent to your registered email address automatically post-checkout.
                     </p>
                   </div>

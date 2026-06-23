@@ -332,7 +332,7 @@ export const ProfilePage = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Email Address
-                  <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-350 dark:text-slate-600">(read-only)</span>
+                  <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(read-only)</span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600" size={16} />
@@ -389,7 +389,7 @@ export const ProfilePage = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 School Name
-                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-350 dark:text-slate-600">(optional)</span>
+                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
               </label>
               <div className="relative">
                 <School className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -407,7 +407,7 @@ export const ProfilePage = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Profile Photo URL
-                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-350 dark:text-slate-600">(optional)</span>
+                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
               </label>
               <div className="relative">
                 <ImagePlus className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
