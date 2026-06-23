@@ -194,6 +194,7 @@ export const ChatPage = () => {
 
   const getSenderName = (sender: ChatMessage['senderId']) => {
     if (typeof sender === 'string') return 'Unknown';
+    if (sender.role === 'admin') return 'Admin';
     return sender.fullName || 'Unknown';
   };
 
@@ -272,13 +273,13 @@ export const ChatPage = () => {
                     }`}
                   >
                     <img
-                      src={otherParticipant?.profilePhoto || getAvatarFallback(otherParticipant?.fullName || 'User')}
-                      alt={otherParticipant?.fullName}
+                      src={otherParticipant?.role === 'admin' ? getAvatarFallback('Admin') : otherParticipant?.profilePhoto || getAvatarFallback(otherParticipant?.fullName || 'User')}
+                      alt="Admin"
                       className="w-9 h-9 rounded-full object-cover border dark:border-slate-700 shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <p className={`font-bold text-xs text-slate-800 dark:text-white truncate ${unreadRooms.includes(room._id) ? 'font-black text-brand-primary' : ''}`}>
-                        {otherParticipant?.fullName || 'Unknown'}
+                        {otherParticipant?.role === 'admin' ? 'Admin' : otherParticipant?.fullName || 'Unknown'}
                       </p>
                       <p className={`text-[10px] truncate ${unreadRooms.includes(room._id) ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-400'}`}>
                         {room.lastMessage || 'Start a conversation'}
@@ -332,7 +333,10 @@ export const ChatPage = () => {
                 </div>
               ) : (
                 <img
-                  src={selectedRoom.participants.find(p => p._id !== student?._id)?.profilePhoto || getAvatarFallback('User')}
+                  src={(() => {
+                    const other = selectedRoom.participants.find(p => p._id !== student?._id);
+                    return other?.role === 'admin' ? getAvatarFallback('Admin') : other?.profilePhoto || getAvatarFallback('User');
+                  })()}
                   alt=""
                   className="w-9 h-9 rounded-full object-cover border dark:border-slate-700"
                 />
@@ -342,7 +346,10 @@ export const ChatPage = () => {
                 <p className="font-bold text-xs text-slate-800 dark:text-white">
                   {selectedRoom.type === 'global'
                     ? 'Global Announcements'
-                    : selectedRoom.participants.find(p => p._id !== student?._id)?.fullName || 'Chat'}
+                    : (() => {
+                        const other = selectedRoom.participants.find(p => p._id !== student?._id);
+                        return other?.role === 'admin' ? 'Admin' : other?.fullName || 'Chat';
+                      })()}
                 </p>
                 <p className="text-[10px] text-slate-400">
                   {selectedRoom.type === 'global' ? 'Broadcast messages to all users' : 'Personal conversation'}
