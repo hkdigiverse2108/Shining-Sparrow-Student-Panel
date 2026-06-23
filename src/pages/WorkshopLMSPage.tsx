@@ -104,7 +104,7 @@ export const WorkshopLMSPage = () => {
   const workshop = workshopRes?.data;
 
   const { data: curriculumsRes, isLoading: curriculumsLoading } = useWorkshopCurriculums(workshopId || '');
-  const rawCurriculums = curriculumsRes?.data?.workshop_curriculums || curriculumsRes?.data;
+  const rawCurriculums = curriculumsRes?.data?.workshop_curriculum_data;
   const curriculums = React.useMemo(() => rawCurriculums || [], [rawCurriculums]) as WorkshopCurriculum[];
 
   // Active Video State

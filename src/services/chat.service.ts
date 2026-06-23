@@ -15,6 +15,11 @@ export interface ChatMessage {
   roomId: string;
   senderId: { _id: string; fullName: string; role: string; profilePhoto?: string } | string;
   message: string;
+  attachment?: {
+    url: string;
+    type: 'image' | 'pdf' | 'doc';
+    name: string;
+  };
   createdAt: string;
 }
 
@@ -34,7 +39,7 @@ const chatService = {
     return response.data;
   },
 
-  sendMessage: async (payload: { roomId?: string; message: string }) => {
+  sendMessage: async (payload: { roomId?: string; message: string; attachment?: ChatMessage['attachment'] }) => {
     const response = await client.post('/chat/send', payload);
     return response.data;
   },

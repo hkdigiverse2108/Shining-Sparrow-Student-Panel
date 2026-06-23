@@ -30,7 +30,7 @@ export const useCreateChatRoom = () => {
 export const useSendChatMessage = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { roomId?: string; message: string }) => chatService.sendMessage(payload),
+    mutationFn: (payload: { roomId?: string; message: string; attachment?: { url: string; type: 'image' | 'pdf' | 'doc'; name: string } }) => chatService.sendMessage(payload),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['chat-rooms'] });
       if (variables.roomId) {

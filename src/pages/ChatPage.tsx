@@ -4,10 +4,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useChatRooms, useChatMessages, useCreateChatRoom, useSendChatMessage } from '../hooks/useChat';
 import { useChatContext } from '../context/ChatContext';
 import type { ChatMessage, ChatRoom } from '../services/chat.service';
-import { MessageSquare, Send, Globe, ArrowLeft, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Globe, ArrowLeft, Loader2, Paperclip, FileText, ImageIcon, Download, X, File } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import { getAvatarFallback } from '../utils/fallbacks';
+import client from '../api/client';
 
 export const ChatPage = () => {
   const { student } = useAuth();
@@ -18,8 +19,11 @@ export const ChatPage = () => {
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectRoom = (room: ChatRoom | null) => {
     setSelectedRoom(room);
@@ -91,21 +95,82 @@ export const ChatPage = () => {
 
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() && !selectedFile) return;
 
     const msg = messageInput.trim();
+    const file = selectedFile;
+
     setMessageInput('');
+    setSelectedFile(null);
 
     try {
+      let attachmentPayload: ChatMessage['attachment'] | undefined;
+
+      if (file) {
+        setUploading(true);
+        let fieldName = 'doc';
+        let attachType: 'image' | 'pdf' | 'doc' = 'doc';
+
+        if (file.type.startsWith('image/')) {
+          fieldName = 'images';
+          attachType = 'image';
+        } else if (file.type === 'application/pdf') {
+          fieldName = 'pdf';
+          attachType = 'pdf';
+        }
+
+        const formData = new FormData();
+        formData.append(fieldName, file);
+        if (fieldName === 'images') {
+          formData.append('category', 'chat');
+        }
+
+        const uploadRes = await client.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const uploaded = uploadRes?.data?.data;
+        let url = '';
+        if (attachType === 'image') {
+          url = uploaded?.images?.[0] || '';
+        } else if (attachType === 'pdf') {
+          url = uploaded?.pdfs?.[0] || '';
+        } else {
+          url = uploaded?.docs?.[0] || '';
+        }
+
+        if (!url) throw new Error('Upload returned no URL');
+
+        attachmentPayload = { url, type: attachType, name: file.name };
+      }
+
       await sendMessageMutation.mutateAsync({
         roomId: selectedRoom?._id,
-        message: msg,
+        message: msg || '',
+        ...(attachmentPayload && { attachment: attachmentPayload }),
       });
-    } catch {
+    } catch (err) {
+      console.error('Failed to send message:', err);
       setMessageInput(msg);
+      setSelectedFile(file);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
 
     inputRef.current?.focus();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    // Reset file input so re-selecting the same file still triggers onChange
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleClearSelectedFile = () => {
+    setSelectedFile(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -320,7 +385,39 @@ export const ChatPage = () => {
                             ? 'bg-brand-primary text-white rounded-br-md'
                             : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-orange-100/20 dark:border-slate-700/50 rounded-bl-md shadow-sm'
                         }`}>
-                          {msg.message}
+                          {msg.message && <p className={msg.attachment ? 'mb-2' : ''}>{msg.message}</p>}
+                          {msg.attachment && (
+                            <div className={`rounded-xl overflow-hidden ${msg.message ? 'mt-2' : ''}`}>
+                              {msg.attachment.type === 'image' ? (
+                                <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={msg.attachment.url}
+                                    alt={msg.attachment.name}
+                                    className="max-w-full max-h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                  />
+                                </a>
+                              ) : (
+                                <a
+                                  href={msg.attachment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                                    isOwn
+                                      ? 'bg-orange-500/20 hover:bg-orange-500/30 text-white'
+                                      : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200'
+                                  }`}
+                                >
+                                  {msg.attachment.type === 'pdf' ? (
+                                    <FileText size={16} className="shrink-0" />
+                                  ) : (
+                                    <File size={16} className="shrink-0" />
+                                  )}
+                                  <span className="truncate flex-1 min-w-0">{msg.attachment.name}</span>
+                                  <Download size={14} className="shrink-0" />
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <p className={`text-[9px] text-slate-400 mt-1 px-1 ${isOwn ? 'text-right' : ''}`}>
                           {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -340,24 +437,71 @@ export const ChatPage = () => {
                   Only admin can send messages in global announcements
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
-                    className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-orange-100/30 dark:border-slate-700/50 rounded-xl text-xs text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:border-brand-primary dark:focus:border-brand-secondary transition-colors"
-                    disabled={sendMessageMutation.isPending}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                    className="p-2.5 bg-brand-primary text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-brand-primary/15"
-                  >
-                    <Send size={16} />
-                  </button>
+                <div className="space-y-2">
+                  {/* File Preview */}
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-orange-100/30 dark:border-slate-700/50 rounded-xl">
+                      {selectedFile.type.startsWith('image/') ? (
+                        <img
+                          src={URL.createObjectURL(selectedFile)}
+                          alt="preview"
+                          className="w-10 h-10 rounded-lg object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+                          {selectedFile.type === 'application/pdf' ? (
+                            <FileText size={18} className="text-brand-primary" />
+                          ) : (
+                            <File size={18} className="text-brand-primary" />
+                          )}
+                        </div>
+                      )}
+                      <span className="flex-1 min-w-0 text-[11px] text-slate-700 dark:text-slate-300 truncate">
+                        {selectedFile.name}
+                      </span>
+                      <button
+                        onClick={handleClearSelectedFile}
+                        disabled={uploading}
+                        className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-brand-primary dark:hover:text-brand-secondary rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 cursor-pointer"
+                    >
+                      <Paperclip size={16} />
+                    </button>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder={selectedFile ? 'Add a caption...' : 'Type a message...'}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-orange-100/30 dark:border-slate-700/50 rounded-xl text-xs text-slate-800 dark:text-white placeholder-slate-400 outline-none focus:border-brand-primary dark:focus:border-brand-secondary transition-colors"
+                      disabled={sendMessageMutation.isPending || uploading}
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={(!messageInput.trim() && !selectedFile) || sendMessageMutation.isPending || uploading}
+                      className="p-2.5 bg-brand-primary text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-brand-primary/15"
+                    >
+                      {uploading || sendMessageMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

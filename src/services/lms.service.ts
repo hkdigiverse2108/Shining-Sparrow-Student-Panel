@@ -51,7 +51,7 @@ const lmsService = {
 
   getWorkshopCurriculums: async (workshopId: string, params?: { page?: number; limit?: number }) => {
     const response = await client.get('/workshop-curriculum/all', {
-      params: { workshopId, ...params },
+      params: { workshopFilter: workshopId, ...params },
     });
     return response.data;
   },
