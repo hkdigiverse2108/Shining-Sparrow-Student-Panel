@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { User, Phone, Landmark, School, Save, Copy, Check, Mail, MapPin, BookOpen, Award, ImagePlus, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+import client from '../api/client';
 
 const cardContainerVariants = {
   initial: { opacity: 0 },
@@ -62,6 +63,7 @@ export const ProfilePage = () => {
   const [schoolName, setSchoolName] = useState(student?.schoolName || '');
   const [profilePhoto, setProfilePhoto] = useState(student?.profilePhoto || '');
   const [profileLoading, setProfileLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   // OTR Copy State
   const [copied, setCopied] = useState(false);
@@ -403,21 +405,64 @@ export const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Row 4: Profile Photo URL */}
+            {/* Profile Photo Upload / URL */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                Profile Photo URL
-                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
+                Profile Photo
+                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(Upload file or paste link)</span>
               </label>
-              <div className="relative">
-                <ImagePlus className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input
-                  type="url"
-                  value={profilePhoto}
-                  onChange={(e) => setProfilePhoto(e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="ui-input pl-11"
-                />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative grow">
+                  <ImagePlus className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="url"
+                    value={profilePhoto}
+                    onChange={(e) => setProfilePhoto(e.target.value)}
+                    placeholder="https://example.com/avatar.jpg"
+                    className="ui-input pl-11"
+                  />
+                </div>
+                <div className="shrink-0 flex items-center">
+                  <input
+                    type="file"
+                    id="profile-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      const formData = new FormData();
+                      formData.append('category', 'user');
+                      formData.append('images', file);
+                      
+                      setUploadLoading(true);
+                      try {
+                        const response = await client.post('/upload', formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        
+                        if (response.data?.data?.images?.[0]) {
+                          setProfilePhoto(response.data.data.images[0]);
+                          showToast('Photo uploaded successfully! Save changes to apply.', 'success');
+                        } else {
+                          showToast('Upload failed. No URL returned.', 'error');
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        showToast('Error uploading photo.', 'error');
+                      } finally {
+                        setUploadLoading(false);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="profile-upload"
+                    className={`px-5 h-11 border dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl transition-all font-bold text-xs flex items-center justify-center gap-2 cursor-pointer border-dashed w-full sm:w-auto ${uploadLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                  >
+                    {uploadLoading ? 'Uploading...' : 'Upload Image File'}
+                  </label>
+                </div>
               </div>
             </div>
 
