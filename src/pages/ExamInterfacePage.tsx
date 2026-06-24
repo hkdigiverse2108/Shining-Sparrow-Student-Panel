@@ -133,6 +133,10 @@ export const ExamInterfacePage = () => {
   const [resultData, setResultData] = useState<ExamResult | null>(null);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
 
+  // Audio Playback states
+  const [audioPlaying, setAudioPlaying] = useState<Record<string, boolean>>({});
+  const [audioCountdown, setAudioCountdown] = useState<Record<string, number>>({});
+
   // Audio Playback Ref
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
 
@@ -242,14 +246,32 @@ export const ExamInterfacePage = () => {
   };
 
   const playAudio = (questionId: string) => {
+    if (audioPlaying[questionId] || audioCountdown[questionId] !== undefined) return;
+
     const audio = audioRefs.current[questionId];
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(err => {
-        console.error('Audio playback failed', err);
-        showToast('Playback failed. Please click play again.', 'error');
-      });
-    }
+    if (!audio) return;
+
+    let count = 3;
+    setAudioCountdown(prev => ({ ...prev, [questionId]: count }));
+
+    const timer = setInterval(() => {
+      count--;
+      if (count > 0) {
+        setAudioCountdown(prev => ({ ...prev, [questionId]: count }));
+      } else {
+        clearInterval(timer);
+        setAudioCountdown(prev => {
+          const next = { ...prev };
+          delete next[questionId];
+          return next;
+        });
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.error('Audio playback failed', err);
+          showToast('Playback failed. Please click play again.', 'error');
+        });
+      }
+    }, 1000);
   };
 
   // Timer formatter (e.g. 05:00)
@@ -262,6 +284,8 @@ export const ExamInterfacePage = () => {
   // 1. RESULT SCREEN
   if (examSubmitted && resultData) {
     const passed = resultData.status === 'pass';
+    const activeQuestion = questions[activeReviewIndex];
+    
     return (
       <motion.div
         variants={pageChildVariants}
@@ -269,6 +293,28 @@ export const ExamInterfacePage = () => {
         animate="animate"
         className="max-w-4xl mx-auto px-2 py-4 sm:px-4 sm:py-10 space-y-4 sm:space-y-8"
       >
+        {/* Full Screen Countdown Overlay for Review Replay */}
+        {activeQuestion && audioCountdown[activeQuestion._id] !== undefined && (
+          <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md transition-all duration-300">
+            <div className="text-center space-y-6">
+              <div className="text-xs sm:text-sm font-bold uppercase tracking-widest text-brand-primary dark:text-brand-secondary animate-pulse">
+                Audio Question Replay Starting In
+              </div>
+              <motion.div
+                key={audioCountdown[activeQuestion._id]}
+                initial={{ scale: 0.2, opacity: 0 }}
+                animate={{ scale: 1.1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-9xl font-black text-white font-display select-none filter drop-shadow-[0_0_20px_rgba(232,100,36,0.3)]"
+              >
+                {audioCountdown[activeQuestion._id]}
+              </motion.div>
+              <div className="text-xs sm:text-sm text-slate-400 font-medium max-w-xs px-6 leading-relaxed">
+                Get ready to listen carefully.
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Pass/Fail Banner */}
         <div className={`p-4 sm:p-8 rounded-2xl sm:rounded-3xl text-center space-y-3 sm:space-y-4 border shadow-lg ${
@@ -455,19 +501,65 @@ export const ExamInterfacePage = () => {
                       {activeQuestion.questionType === 'audio' && activeQuestion.questionAudio && (
                         <div className="w-full p-3 sm:p-4 bg-slate-50 dark:bg-page-dark/60 border dark:border-slate-800/40 rounded-xl sm:rounded-2xl flex items-center justify-between gap-3 sm:gap-4">
                           <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-500">
-                            <Volume2 size={16} className="text-brand-primary" />
-                            <span>Listen to the calculation problem:</span>
+                            {audioPlaying[activeQuestion._id] ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-0.5 h-3.5 w-6 justify-center">
+                                  <span className="w-0.5 h-3 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '0.6s' }} />
+                                  <span className="w-0.5 h-4 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
+                                  <span className="w-0.5 h-2 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '0.5s' }} />
+                                  <span className="w-0.5 h-3.5 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '0.7s' }} />
+                                </div>
+                                <span className="text-brand-primary font-bold dark:text-brand-secondary animate-pulse">Playing audio problem...</span>
+                              </div>
+                            ) : audioCountdown[activeQuestion._id] !== undefined ? (
+                              <div className="flex items-center gap-2">
+                                <span className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                </span>
+                                <span className="text-amber-500 font-bold dark:text-amber-450 animate-pulse">Get ready to listen...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Volume2 size={16} className="text-brand-primary" />
+                                <span>Listen to the calculation problem:</span>
+                              </>
+                            )}
                           </div>
                           <audio
                             ref={(el) => { audioRefs.current[activeQuestion._id] = el; }}
                             src={activeQuestion.questionAudio}
+                            onPlay={() => setAudioPlaying(prev => ({ ...prev, [activeQuestion._id]: true }))}
+                            onPause={() => setAudioPlaying(prev => ({ ...prev, [activeQuestion._id]: false }))}
+                            onEnded={() => setAudioPlaying(prev => ({ ...prev, [activeQuestion._id]: false }))}
                           />
                           <button
                             type="button"
+                            disabled={audioCountdown[activeQuestion._id] !== undefined || audioPlaying[activeQuestion._id]}
                             onClick={() => playAudio(activeQuestion._id)}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-sm cursor-pointer"
+                            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-white font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-sm transition-all ${
+                              audioCountdown[activeQuestion._id] !== undefined
+                                ? 'bg-amber-500 text-white cursor-not-allowed animate-pulse'
+                                : audioPlaying[activeQuestion._id]
+                                ? 'bg-emerald-600 text-white cursor-not-allowed'
+                                : 'bg-brand-primary hover:bg-brand-primary/90 cursor-pointer'
+                            }`}
                           >
-                            <Play size={10} className="fill-current" /> Play Audio
+                            {audioCountdown[activeQuestion._id] !== undefined ? (
+                              <>
+                                <Clock size={10} className="animate-spin" />
+                                <span>Starting...</span>
+                              </>
+                            ) : audioPlaying[activeQuestion._id] ? (
+                              <>
+                                <Volume2 size={10} className="animate-bounce" />
+                                <span>Playing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play size={10} className="fill-current" /> Play Audio
+                              </>
+                            )}
                           </button>
                         </div>
                       )}
@@ -558,6 +650,28 @@ export const ExamInterfacePage = () => {
 
     return (
       <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-page-dark flex flex-col justify-between overflow-y-auto transition-colors duration-200">
+        {/* Full Screen Countdown Overlay */}
+        {audioCountdown[currentQuestion._id] !== undefined && (
+          <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md transition-all duration-300">
+            <div className="text-center space-y-6">
+              <div className="text-xs sm:text-sm font-bold uppercase tracking-widest text-brand-primary dark:text-brand-secondary animate-pulse">
+                Audio Question Starting In
+              </div>
+              <motion.div
+                key={audioCountdown[currentQuestion._id]}
+                initial={{ scale: 0.2, opacity: 0 }}
+                animate={{ scale: 1.1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-9xl font-black text-white font-display select-none filter drop-shadow-[0_0_20px_rgba(232,100,36,0.3)]"
+              >
+                {audioCountdown[currentQuestion._id]}
+              </motion.div>
+              <div className="text-xs sm:text-sm text-slate-400 font-medium max-w-xs px-6 leading-relaxed">
+                Get ready to listen carefully. The audio will play shortly.
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Header: Title, progress, timer */}
         <header className="sticky top-0 bg-white dark:bg-card-dark border-b dark:border-slate-800/60 p-4 flex items-center justify-between shadow-sm z-10">
@@ -700,21 +814,67 @@ export const ExamInterfacePage = () => {
               {currentQuestion.questionType === 'audio' && currentQuestion.questionAudio && (
                 <div className="w-full p-4 bg-slate-50 dark:bg-page-dark/60 border dark:border-slate-800/40 rounded-2xl flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 text-sm text-slate-500">
-                    <Volume2 size={20} className="text-brand-primary animate-pulse" />
-                    <span>Listen to the calculation problem:</span>
+                    {audioPlaying[currentQuestion._id] ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5 h-3.5 w-6 justify-center">
+                          <span className="w-0.5 h-3 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '0.6s' }} />
+                          <span className="w-0.5 h-4 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
+                          <span className="w-0.5 h-2 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '0.5s' }} />
+                          <span className="w-0.5 h-3.5 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '0.7s' }} />
+                        </div>
+                        <span className="text-brand-primary font-bold dark:text-brand-secondary animate-pulse">Playing audio problem...</span>
+                      </div>
+                    ) : audioCountdown[currentQuestion._id] !== undefined ? (
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                        </span>
+                        <span className="text-amber-500 font-bold dark:text-amber-450 animate-pulse">Get ready to listen...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Volume2 size={20} className="text-brand-primary" />
+                        <span>Listen to the calculation problem:</span>
+                      </>
+                    )}
                   </div>
                   
                   {/* HTML5 audio element hidden */}
                   <audio
                     ref={(el) => { audioRefs.current[currentQuestion._id] = el; }}
                     src={currentQuestion.questionAudio}
+                    onPlay={() => setAudioPlaying(prev => ({ ...prev, [currentQuestion._id]: true }))}
+                    onPause={() => setAudioPlaying(prev => ({ ...prev, [currentQuestion._id]: false }))}
+                    onEnded={() => setAudioPlaying(prev => ({ ...prev, [currentQuestion._id]: false }))}
                   />
 
                   <button
+                    disabled={audioCountdown[currentQuestion._id] !== undefined || audioPlaying[currentQuestion._id]}
                     onClick={() => playAudio(currentQuestion._id)}
-                    className="px-4 py-2 rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+                    className={`px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all ${
+                      audioCountdown[currentQuestion._id] !== undefined
+                        ? 'bg-amber-500 text-white cursor-not-allowed animate-pulse'
+                        : audioPlaying[currentQuestion._id]
+                        ? 'bg-emerald-600 text-white cursor-not-allowed'
+                        : 'bg-brand-primary hover:bg-brand-primary/90 cursor-pointer'
+                    }`}
                   >
-                    <Play size={12} className="fill-current" /> Play Audio
+                    {audioCountdown[currentQuestion._id] !== undefined ? (
+                      <>
+                        <Clock size={12} className="animate-spin" />
+                        <span>Starting...</span>
+                      </>
+                    ) : audioPlaying[currentQuestion._id] ? (
+                      <>
+                        <Volume2 size={12} className="animate-bounce" />
+                        <span>Playing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play size={12} className="fill-current" /> Play Audio
+                      </>
+                    )}
                   </button>
                 </div>
               )}

@@ -19,6 +19,7 @@ import { WorkshopLMSPage } from './pages/WorkshopLMSPage';
 import { BlogDetailsPage } from './pages/BlogDetailsPage';
 import { ChatPage } from './pages/ChatPage';
 import { PaymentHistoryPage } from './pages/PaymentHistoryPage';
+import { SupportPage } from './pages/SupportPage';
 
 // Context Providers
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -166,6 +167,16 @@ const AppLayout = () => {
                   <AuthGuard>
                     <PageTransition>
                       <ChatPage />
+                    </PageTransition>
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/support" 
+                element={
+                  <AuthGuard>
+                    <PageTransition>
+                      <SupportPage />
                     </PageTransition>
                   </AuthGuard>
                 } 

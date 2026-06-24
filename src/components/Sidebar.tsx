@@ -8,7 +8,7 @@ import { LogoutConfirmationModal } from './LogoutConfirmationModal';
 import { 
   BookOpen, ShoppingBag, Tv, Newspaper, User, LogOut, Sun, Moon, 
   Menu, X, Copy, Check, ChevronRight, ChevronLeft, MessageSquare,
-  CreditCard
+  CreditCard, HelpCircle
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { handleImageError, getAvatarFallback } from '../utils/fallbacks';
@@ -117,6 +117,12 @@ export const Sidebar = () => {
       label: 'My Profile',
       icon: User,
       path: '/profile',
+      search: '',
+    },
+    {
+      label: 'Support Center',
+      icon: HelpCircle,
+      path: '/support',
       search: '',
     },
   ];
