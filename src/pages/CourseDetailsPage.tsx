@@ -10,7 +10,7 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import { 
   handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE 
 } from '../utils/fallbacks';
-import { ArrowRight, CheckCircle2, Play } from 'lucide-react';
+import { ArrowRight, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 
@@ -59,13 +59,13 @@ interface WorkshopTestimonial {
   rate?: number;
 }
 
-interface LocalizedText {
+export interface LocalizedText {
   en: string;
   hi?: string;
   gu?: string;
 }
 
-interface FAQ {
+export interface FAQ {
   question: any;
   answer: any;
 }
@@ -75,6 +75,29 @@ interface RazorpayResponse {
   razorpay_order_id?: string;
   razorpay_signature?: string;
 }
+
+// Helper to parse YouTube URLs to embed URLs
+const getEmbedUrl = (url: string) => {
+  if (!url) return '';
+  let embedUrl = url;
+  if (!url.includes('youtube.com/embed/')) {
+    let videoId = '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      videoId = match[2];
+    }
+    if (videoId) {
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    }
+  } else {
+    const separator = embedUrl.includes('?') ? '&' : '?';
+    if (!embedUrl.includes('autoplay=')) {
+      embedUrl = `${embedUrl}${separator}autoplay=1`;
+    }
+  }
+  return embedUrl;
+};
 
 export const CourseDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,6 +111,7 @@ export const CourseDetailsPage = () => {
   // Active Tab State
   const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'faqs'>('overview');
   const [faqLanguage, setFaqLanguage] = useState<'en' | 'hi' | 'gu'>('en');
+  const [showTrailer, setShowTrailer] = useState(false);
 
   // Queries
   const { data: settingsData } = useSettings();
@@ -371,57 +395,7 @@ export const CourseDetailsPage = () => {
                       )}
                     </div>
 
-                    {/* General course cards (only shown for courses) */}
-                    {!isWorkshop && (
-                      <>
-                        {/* What you will gain */}
-                        <div className="bg-white dark:bg-card-dark border border-orange-100/50 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-4">
-                          <h3 className="font-display font-extrabold text-lg text-slate-800 dark:text-white flex items-center gap-2">
-                            <span className="text-xl">💡</span> What you will gain from this program
-                          </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {[
-                              { title: 'Master Mental Speed Calculations', desc: 'Perform double-digit arithmetic calculations without paper or calculators.' },
-                              { title: 'Boost Cognitive Memory Span', desc: 'Improve auditory concentration limits and 3D visualization capabilities.' },
-                              { title: 'Hands-on Interactive Worksheets', desc: 'Access downloadable abacus drills and practice sheets at every level.' },
-                              { title: 'Level Assessment Certificates', desc: 'Verify your calculations competence with automated passing badges.' }
-                            ].map((takeaway, index) => (
-                              <div 
-                                key={index}
-                                className="p-4 bg-orange-50/20 dark:bg-orange-950/5 border border-orange-100/30 dark:border-slate-800/40 rounded-2xl flex items-start gap-3 hover:shadow-[0_4px_20px_rgba(232,100,36,0.02)] transition-shadow"
-                              >
-                                <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
-                                <div className="space-y-1">
-                                  <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200">{takeaway.title}</h4>
-                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">{takeaway.desc}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
 
-                        {/* Prerequisites */}
-                        <div className="bg-white dark:bg-card-dark border border-orange-100/50 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-4">
-                          <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-white flex items-center gap-2">
-                            <span className="text-lg">⚙️</span> Program Prerequisites
-                          </h3>
-                          <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-2.5 pl-1.5">
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-                              Recommended for children aged 5-15 years (or anyone interested in speed arithmetic).
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-                              No prior abacus or finger math training required — we start from absolute basics.
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-                              A physical 17-rod Soroban abacus is recommended (optional, since a digital simulator is included).
-                            </li>
-                          </ul>
-                        </div>
-                      </>
-                    )}
 
                     {/* Workshop details card (only shown for workshops) */}
                     {isWorkshop && (
@@ -809,7 +783,16 @@ export const CourseDetailsPage = () => {
               <div className="ui-card space-y-6 p-0 overflow-hidden">
                 
                 {/* Thumbnail with gradient overlay */}
-                <div className="w-full h-52 overflow-hidden bg-slate-100 dark:bg-page-dark relative group">
+                <div 
+                  className={`w-full h-52 overflow-hidden bg-slate-100 dark:bg-page-dark relative group ${
+                    !isWorkshop && item.trailerUrl ? 'cursor-pointer' : ''
+                  }`}
+                  onClick={() => {
+                    if (!isWorkshop && item.trailerUrl) {
+                      setShowTrailer(true);
+                    }
+                  }}
+                >
                   <img
                     src={item.image || (isWorkshop ? FALLBACK_WORKSHOP_IMAGE : FALLBACK_COURSE_IMAGE)}
                     alt={name}
@@ -820,11 +803,13 @@ export const CourseDetailsPage = () => {
                   <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/10" />
                   
                   {/* Play hover overlay */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-                    <div className="w-14 h-14 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-2xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                      <Play size={22} className="fill-current ml-0.5" />
+                  {!isWorkshop && item.trailerUrl && (
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <div className="w-14 h-14 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-2xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                        <Play size={22} className="fill-current ml-0.5" />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Status badge */}
                   {isPurchased ? (
@@ -997,6 +982,40 @@ export const CourseDetailsPage = () => {
 
         </div>
       </motion.div>
+
+      {/* Trailer Video Modal */}
+      <AnimatePresence>
+        {showTrailer && item.trailerUrl && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-4xl bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowTrailer(false)}
+                className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors border border-white/10 cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+              
+              {/* Aspect Ratio Container for Iframe */}
+              <div className="aspect-video w-full">
+                <iframe
+                  src={getEmbedUrl(item.trailerUrl)}
+                  title={`${name} Trailer`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
