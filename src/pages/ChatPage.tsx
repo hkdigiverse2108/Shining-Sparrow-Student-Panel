@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useChatRooms, useChatMessages, useCreateChatRoom, useSendChatMessage } from '../hooks/useChat';
 import { useChatContext } from '../context/ChatContext';
 import type { ChatMessage, ChatRoom } from '../services/chat.service';
-import { MessageSquare, Send, Globe, ArrowLeft, Loader2, Paperclip, FileText, ImageIcon, Download, X, File } from 'lucide-react';
+import { MessageSquare, Send, Globe, ArrowLeft, Loader2, Paperclip, FileText, ImageIcon, Download, X, File, CornerUpLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import { getAvatarFallback } from '../utils/fallbacks';
@@ -21,6 +21,7 @@ export const ChatPage = () => {
   const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +29,7 @@ export const ChatPage = () => {
   const handleSelectRoom = (room: ChatRoom | null) => {
     setSelectedRoom(room);
     setRealtimeMessages([]);
+    setReplyToMessage(null);
     if (room?._id) {
       markRoomAsRead(room._id);
     }
@@ -148,7 +150,9 @@ export const ChatPage = () => {
         roomId: selectedRoom?._id,
         message: msg || '',
         ...(attachmentPayload && { attachment: attachmentPayload }),
+        ...(replyToMessage && { replyTo: replyToMessage._id }),
       });
+      setReplyToMessage(null);
     } catch (err) {
       console.error('Failed to send message:', err);
       setMessageInput(msg);
@@ -369,15 +373,45 @@ export const ChatPage = () => {
                   <p className="text-xs text-slate-400">No messages yet. Start the conversation!</p>
                 </div>
               ) : (
-                allMessages.map((msg) => {
+                allMessages.map((msg, index) => {
                   const isOwn = typeof msg.senderId === 'object' ? msg.senderId._id === student?._id : msg.senderId === student?._id;
                   const senderName = getSenderName(msg.senderId);
                   const senderRole = getSenderRole(msg.senderId);
 
+                  const prevMsg = index > 0 ? allMessages[index - 1] : null;
+                  const nextMsg = index < allMessages.length - 1 ? allMessages[index + 1] : null;
+
+                  const getMsgSenderId = (m: ChatMessage | null) => {
+                    if (!m) return null;
+                    return typeof m.senderId === 'object' ? m.senderId._id : m.senderId;
+                  };
+
+                  const isSameSenderAsPrev = prevMsg && getMsgSenderId(prevMsg) === getMsgSenderId(msg);
+                  const isSameMinuteAsPrev = prevMsg && new Date(prevMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) === new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const isConsecutive = isSameSenderAsPrev && isSameMinuteAsPrev;
+
+                  const isSameSenderAsNext = nextMsg && getMsgSenderId(nextMsg) === getMsgSenderId(msg);
+                  const isSameMinuteAsNext = nextMsg && new Date(nextMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) === new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const isLastInGroup = !(isSameSenderAsNext && isSameMinuteAsNext);
+
                   return (
-                    <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div 
+                      key={msg._id} 
+                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative ${isConsecutive ? 'mb-0.5' : 'mb-3.5'}`}
+                      style={{ marginTop: isConsecutive ? '-10px' : '0px' }}
+                    >
+                      {!isOwn && (
+                        <button
+                          onClick={() => setReplyToMessage(msg)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-all duration-200 cursor-pointer self-center mr-2 order-2"
+                          title="Reply"
+                        >
+                          <CornerUpLeft size={14} />
+                        </button>
+                      )}
+
                       <div className={`max-w-[75%] ${isOwn ? 'order-2' : 'order-1'}`}>
-                        {!isOwn && (
+                        {!isOwn && !isConsecutive && (
                           <div className="flex items-center gap-1.5 mb-1 px-1">
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{senderName}</span>
                             {senderRole === 'admin' && (
@@ -392,9 +426,24 @@ export const ChatPage = () => {
                             ? 'bg-brand-primary text-white rounded-br-md'
                             : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-orange-100/20 dark:border-slate-700/50 rounded-bl-md shadow-sm'
                         }`}>
-                          {msg.message && <p className={msg.attachment ? 'mb-2' : ''}>{msg.message}</p>}
+                          {msg.replyTo && (
+                            <div className={`mb-2 p-2 rounded-xl border-l-2 bg-black/5 dark:bg-white/5 text-[10px] ${
+                              isOwn 
+                                ? 'border-white/40 text-orange-50' 
+                                : 'border-brand-primary/60 text-slate-500 dark:text-slate-400'
+                            }`}>
+                              <p className="font-bold text-[9px] mb-0.5 opacity-90">
+                                {typeof msg.replyTo.senderId === 'object' 
+                                  ? (msg.replyTo.senderId._id === student?._id ? 'You' : msg.replyTo.senderId.fullName || 'User') 
+                                  : 'User'}
+                              </p>
+                              <p className="truncate">
+                                {msg.replyTo.message || (msg.replyTo.attachment ? `📎 ${msg.replyTo.attachment.name}` : '')}
+                              </p>
+                            </div>
+                          )}
                           {msg.attachment && (
-                            <div className={`rounded-xl overflow-hidden ${msg.message ? 'mt-2' : ''}`}>
+                            <div className="rounded-xl overflow-hidden mb-2">
                               {msg.attachment.type === 'image' ? (
                                 <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
                                   <img
@@ -425,11 +474,24 @@ export const ChatPage = () => {
                               )}
                             </div>
                           )}
+                          {msg.message && <p>{msg.message}</p>}
                         </div>
-                        <p className={`text-[9px] text-slate-400 mt-1 px-1 ${isOwn ? 'text-right' : ''}`}>
-                          {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                        {isLastInGroup && (
+                          <p className={`text-[9px] text-slate-400 mt-1 px-1 ${isOwn ? 'text-right' : ''}`}>
+                            {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
                       </div>
+
+                      {isOwn && (
+                        <button
+                          onClick={() => setReplyToMessage(msg)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-all duration-200 cursor-pointer self-center ml-2 order-1"
+                          title="Reply"
+                        >
+                          <CornerUpLeft size={14} />
+                        </button>
+                      )}
                     </div>
                   );
                 })
@@ -445,6 +507,25 @@ export const ChatPage = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
+                  {replyToMessage && (
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border-l-4 border-brand-primary rounded-xl mb-2 text-xs">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-brand-primary text-[10px]">
+                          Replying to {getSenderName(replyToMessage.senderId)}
+                        </p>
+                        <p className="text-slate-500 dark:text-slate-400 truncate">
+                          {replyToMessage.message || (replyToMessage.attachment ? `📎 ${replyToMessage.attachment.name}` : '')}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setReplyToMessage(null)}
+                        className="p-1 hover:text-red-500 transition-colors cursor-pointer text-slate-400"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
                   {/* File Preview */}
                   {selectedFile && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-orange-100/30 dark:border-slate-700/50 rounded-xl">
