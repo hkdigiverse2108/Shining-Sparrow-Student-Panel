@@ -44,6 +44,7 @@ export const useSubmitExam = () => {
       queryClient.invalidateQueries({ queryKey: ['course-lessons'] });
       queryClient.invalidateQueries({ queryKey: ['exam-attempts'] });
       queryClient.invalidateQueries({ queryKey: ['lesson'] });
+      queryClient.invalidateQueries({ queryKey: ['course'] });
     },
   });
 };
@@ -60,6 +61,25 @@ export const useWorkshopCurriculums = (workshopId: string, params?: { page?: num
   return useQuery({
     queryKey: ['workshop-curriculums', workshopId, params],
     queryFn: () => lmsService.getWorkshopCurriculums(workshopId, params),
+    enabled: !!workshopId,
+  });
+};
+
+export const useCompleteWorkshopCurriculum = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { workshopId: string; workshopCurriculumId: string }) => lmsService.completeWorkshopCurriculum(payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['workshop-curriculums', variables.workshopId] });
+      queryClient.invalidateQueries({ queryKey: ['workshop-progress', variables.workshopId] });
+    },
+  });
+};
+
+export const useWorkshopProgress = (workshopId: string) => {
+  return useQuery({
+    queryKey: ['workshop-progress', workshopId],
+    queryFn: () => lmsService.getWorkshopProgress(workshopId),
     enabled: !!workshopId,
   });
 };

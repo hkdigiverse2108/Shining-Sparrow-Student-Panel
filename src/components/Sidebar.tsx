@@ -242,7 +242,7 @@ export const Sidebar = () => {
               </div>
               <div className="flex items-center justify-between gap-3 bg-slate-800 p-2 rounded-xl border border-slate-700">
                 <div className="flex flex-col">
-                  <span className="text-[8px] text-slate-400 uppercase font-bold tracking-wide">OTR Access Code</span>
+                  <span className="text-[8px] text-slate-400 uppercase font-bold tracking-wide">Your OTR</span>
                   <span className="font-mono font-extrabold text-brand-secondary text-xs tracking-wider mt-0.5">{student.otr}</span>
                 </div>
                 <div className="text-[9px] text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded-md">
@@ -272,7 +272,7 @@ export const Sidebar = () => {
 
             <div className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-xl border border-orange-100/30 dark:border-slate-800">
               <div className="flex flex-col">
-                <span className="text-[8px] text-slate-400 uppercase font-bold tracking-wide">OTR Access Code</span>
+                <span className="text-[8px] text-slate-400 uppercase font-bold tracking-wide">Your OTR</span>
                 <span className="font-mono font-extrabold text-brand-primary dark:text-brand-secondary text-sm tracking-widest mt-0.5">
                   {student.otr}
                 </span>

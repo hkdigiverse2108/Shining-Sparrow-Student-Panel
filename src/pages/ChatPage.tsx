@@ -198,7 +198,7 @@ export const ChatPage = () => {
 
   const getSenderName = (sender: ChatMessage['senderId']) => {
     if (typeof sender === 'string') return 'Unknown';
-    if (sender.role === 'admin') return 'Admin';
+    if (sender.role === 'admin') return 'Teacher';
     return sender.fullName || 'Unknown';
   };
 
@@ -245,7 +245,7 @@ export const ChatPage = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className={`font-bold text-xs text-slate-800 dark:text-white truncate ${unreadRooms.includes(globalRoom._id) ? 'font-black text-brand-primary' : ''}`}>
-                  Global Announcements
+                  Announcement
                 </p>
                 <p className={`text-[10px] truncate ${unreadRooms.includes(globalRoom._id) ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-400'}`}>
                   {globalRoom.lastMessage || 'No messages yet'}
@@ -255,7 +255,7 @@ export const ChatPage = () => {
                 <span className="w-2.5 h-2.5 bg-brand-primary rounded-full shrink-0 animate-pulse shadow-[0_0_8px_rgba(232,100,36,0.6)]" />
               )}
               <span className="text-[9px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full shrink-0">
-                Admin
+                Teacher
               </span>
             </button>
           )}
@@ -277,13 +277,13 @@ export const ChatPage = () => {
                     }`}
                   >
                     <img
-                      src={otherParticipant?.role === 'admin' ? getAvatarFallback('Admin') : otherParticipant?.profilePhoto || getAvatarFallback(otherParticipant?.fullName || 'User')}
-                      alt="Admin"
+                      src={otherParticipant?.role === 'admin' ? getAvatarFallback('Teacher') : otherParticipant?.profilePhoto || getAvatarFallback(otherParticipant?.fullName || 'User')}
+                      alt="Teacher"
                       className="w-9 h-9 rounded-full object-cover border dark:border-slate-700 shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <p className={`font-bold text-xs text-slate-800 dark:text-white truncate ${unreadRooms.includes(room._id) ? 'font-black text-brand-primary' : ''}`}>
-                        {otherParticipant?.role === 'admin' ? 'Admin' : otherParticipant?.fullName || 'Unknown'}
+                        {otherParticipant?.role === 'admin' ? 'Talk to Teacher' : otherParticipant?.fullName || 'Unknown'}
                       </p>
                       <p className={`text-[10px] truncate ${unreadRooms.includes(room._id) ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-400'}`}>
                         {room.lastMessage || 'Start a conversation'}
@@ -311,7 +311,7 @@ export const ChatPage = () => {
                 ) : (
                   <MessageSquare size={14} />
                 )}
-                Chat with Admin
+                Talk to Teacher
               </button>
             </div>
           )}
@@ -339,7 +339,7 @@ export const ChatPage = () => {
                 <img
                   src={(() => {
                     const other = selectedRoom.participants.find(p => p._id !== student?._id);
-                    return other?.role === 'admin' ? getAvatarFallback('Admin') : other?.profilePhoto || getAvatarFallback('User');
+                    return other?.role === 'admin' ? getAvatarFallback('Teacher') : other?.profilePhoto || getAvatarFallback('User');
                   })()}
                   alt=""
                   className="w-9 h-9 rounded-full object-cover border dark:border-slate-700"
@@ -349,10 +349,10 @@ export const ChatPage = () => {
               <div>
                 <p className="font-bold text-xs text-slate-800 dark:text-white">
                   {selectedRoom.type === 'global'
-                    ? 'Global Announcements'
+                    ? 'Announcement'
                     : (() => {
                         const other = selectedRoom.participants.find(p => p._id !== student?._id);
-                        return other?.role === 'admin' ? 'Admin' : other?.fullName || 'Chat';
+                        return other?.role === 'admin' ? 'Talk to Teacher' : other?.fullName || 'Chat';
                       })()}
                 </p>
                 <p className="text-[10px] text-slate-400">
@@ -416,7 +416,7 @@ export const ChatPage = () => {
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{senderName}</span>
                             {senderRole === 'admin' && (
                               <span className="text-[8px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded">
-                                Admin
+                                Teacher
                               </span>
                             )}
                           </div>
@@ -503,7 +503,7 @@ export const ChatPage = () => {
             <div className="p-4 border-t border-orange-100/30 dark:border-slate-800/50 bg-white dark:bg-card-dark">
               {selectedRoom.type === 'global' && !isAdmin ? (
                 <div className="text-center py-2 text-xs text-slate-400">
-                  Only admin can send messages in global announcements
+                  Only teacher can send messages in announcement
                 </div>
               ) : (
                 <div className="space-y-2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useMyCourses } from '../hooks/useCourses';
 import { useMyWorkshops } from '../hooks/useWorkshops';
@@ -31,6 +31,16 @@ const cardItemVariants = {
   },
 };
 
+const REACH_SOURCES = [
+  'Social media',
+  'Friends/relatives',
+  'Webinars',
+  'Offline branch visit',
+  'Web search',
+  'Schools',
+  'Others',
+];
+
 const STANDARD_OPTIONS = [
   '1st Std',
   '2nd Std',
@@ -62,8 +72,47 @@ export const ProfilePage = () => {
   const [std, setStd] = useState(student?.std || '5th Std');
   const [schoolName, setSchoolName] = useState(student?.schoolName || '');
   const [profilePhoto, setProfilePhoto] = useState(student?.profilePhoto || '');
+  const [address, setAddress] = useState(student?.address || '');
+  const [reachFrom, setReachFrom] = useState(student?.reachFrom || '');
   const [profileLoading, setProfileLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+
+  // Autocomplete state
+  const [districtsList, setDistrictsList] = useState<string[]>([]);
+  const [filteredDistricts, setFilteredDistricts] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.states) {
+          const allDistricts = data.states.flatMap((s: any) => s.districts);
+          const uniqueDistricts = Array.from(new Set(allDistricts)).sort() as string[];
+          setDistrictsList(uniqueDistricts);
+        }
+      })
+      .catch(err => console.error("Error fetching districts:", err));
+  }, []);
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setDistrict(val);
+    if (val.trim().length > 1) {
+      const filtered = districtsList.filter(d => 
+        d.toLowerCase().includes(val.toLowerCase())
+      ).slice(0, 10);
+      setFilteredDistricts(filtered);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectDistrict = (d: string) => {
+    setDistrict(d);
+    setShowSuggestions(false);
+  };
 
   // OTR Copy State
   const [copied, setCopied] = useState(false);
@@ -89,6 +138,8 @@ export const ProfilePage = () => {
         district,
         std,
         schoolName,
+        address,
+        reachFrom,
       });
 
       if (response && response.status === 200) {
@@ -201,7 +252,7 @@ export const ProfilePage = () => {
             <div className="absolute -top-8 -right-8 w-20 h-20 bg-brand-primary/5 rounded-full blur-2xl group-hover:bg-brand-primary/10 transition-colors" />
             <div className="flex items-center justify-between relative z-10">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                Login OTR Code
+                Your OTR
               </span>
               <button
                 onClick={handleCopyOTR}
@@ -369,7 +420,7 @@ export const ProfilePage = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   District
                 </label>
@@ -379,11 +430,25 @@ export const ProfilePage = () => {
                     type="text"
                     required
                     value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
+                    onChange={handleDistrictChange}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="e.g. Ahmedabad"
                     className="ui-input pl-11"
                   />
                 </div>
+                {showSuggestions && filteredDistricts.length > 0 && (
+                  <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50 p-0 m-0 list-none">
+                    {filteredDistricts.map((d) => (
+                      <li
+                        key={d}
+                        onClick={() => handleSelectDistrict(d)}
+                        className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                      >
+                        {d}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 
@@ -402,6 +467,45 @@ export const ProfilePage = () => {
                   placeholder="Enter your school name"
                   className="ui-input pl-11"
                 />
+              </div>
+            </div>
+
+            {/* Row: Address */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Address
+                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-5 -translate-y-1/2 text-slate-400" size={16} />
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Enter your complete address"
+                  className="ui-input pl-11 py-3 min-h-[80px]"
+                />
+              </div>
+            </div>
+
+            {/* Row: Referral Source (reachFrom) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Referral Source (How did you hear about us?)
+                <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
+              </label>
+              <div className="relative">
+                <Award className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <select
+                  value={reachFrom}
+                  onChange={(e) => setReachFrom(e.target.value)}
+                  className="ui-input pl-11 appearance-none cursor-pointer"
+                >
+                  <option value="">Select source</option>
+                  {REACH_SOURCES.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
               </div>
             </div>
 

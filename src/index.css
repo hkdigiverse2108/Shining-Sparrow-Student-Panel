@@ -117,6 +117,11 @@ body {
 }
 
 /* Rich text rendering helper styles */
+.rich-text-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
 .rich-text-content p {
   margin-bottom: 1rem;
 }
@@ -336,5 +341,21 @@ body {
 
 .animate-top-bar-fade {
   animation: topBarFade 5s forwards ease-in-out;
+}
+
+.rich-text-content {
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.rich-text-content * {
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
 }
 

@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Clock, Send, AlertCircle } from 'lucide-react';
-import { useSettings, useContactUs } from '../hooks/useSettings';
+import { Mail, Phone, MapPin, Clock, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { useContactUsInfo, useContactUs } from '../hooks/useSettings';
 import { useToast } from '../context/ToastContext';
 
 export const SupportPage = () => {
-  const { data: settingsRes } = useSettings();
+  const { data: contactUsRes, isLoading } = useContactUsInfo();
   const contactMutation = useContactUs();
   const { showToast } = useToast();
+
+  const hasContactData = contactUsRes?.data && (
+    contactUsRes.data.phoneNumbers?.length > 0 ||
+    contactUsRes.data.email ||
+    contactUsRes.data.address ||
+    contactUsRes.data.workingHours
+  );
 
   const [formData, setFormData] = useState({
     name: '',
@@ -19,20 +26,13 @@ export const SupportPage = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fallback defaults in case backend settings are not loaded yet
-  const defaultContact = {
-    email: 'info@shiningsparrow.com',
-    phone: '+91 90999 77890',
-    address: 'HK DigiVerse LLP, Surat, Gujarat, India',
-    hours: 'Monday - Saturday: 09:00 AM - 06:00 PM'
-  };
-
-  const contactInfo = settingsRes?.data ? {
-    email: settingsRes.data.emailSales || defaultContact.email,
-    phone: settingsRes.data.contactNumber || defaultContact.phone,
-    address: settingsRes.data.address || defaultContact.address,
-    hours: defaultContact.hours
-  } : defaultContact;
+  const contactData = contactUsRes?.data;
+  const contactInfo = contactData ? {
+    email: contactData.email || '',
+    phoneNumbers: contactData.phoneNumbers || [],
+    address: contactData.address || '',
+    hours: contactData.workingHours || '',
+  } : null;
 
   const validate = () => {
     const tempErrors: Record<string, string> = {};
@@ -90,256 +90,364 @@ export const SupportPage = () => {
           Support Center
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
-          Have any doubts, questions, or issues? Reach out to us directly through any of our channels or drop us a message below.
+          Have any doubts, questions, or issues? Reach out to us through any of the channels below or send us a message — we typically respond within 24 hours.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Side: Contact Information Cards */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Card 1: Email */}
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
-          >
-            <div className="p-3 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
-              <Mail size={22} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">Email Support</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Expect a reply within 24 hours</p>
-              <a 
-                href={`mailto:${contactInfo.email}`}
-                className="block text-sm font-semibold text-brand-primary hover:underline break-all pt-1"
-              >
-                {contactInfo.email}
-              </a>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Phone */}
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.05 }}
-            className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
-          >
-            <div className="p-3 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
-              <Phone size={22} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">Call Support</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Mon-Sat, 9:00 AM - 6:00 PM</p>
-              <a 
-                href={`tel:${contactInfo.phone}`}
-                className="block text-sm font-semibold text-brand-primary hover:underline pt-1"
-              >
-                {contactInfo.phone}
-              </a>
-            </div>
-          </motion.div>
-
-          {/* Card 3: Address */}
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
-          >
-            <div className="p-3 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
-              <MapPin size={22} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">Office Location</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Corporate Headquarters</p>
-              <p className="text-sm text-slate-600 dark:text-slate-350 pt-1 leading-relaxed">
-                {contactInfo.address}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Card 4: Operating Hours */}
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 }}
-            className="p-6 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
-          >
-            <div className="p-3 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
-              <Clock size={22} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">Working Hours</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Support Availability</p>
-              <p className="text-sm text-slate-600 dark:text-slate-350 pt-1">
-                {contactInfo.hours}
-              </p>
-            </div>
-          </motion.div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <Loader2 size={32} className="animate-spin text-brand-primary" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading contact details...</p>
         </div>
+      )}
 
-        {/* Right Side: Message Submission Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl shadow-sm space-y-6"
-          >
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Send us a Message</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Fill in the form details below to submit a ticket/request directly to our administration.</p>
+      {/* No Contact Data State */}
+      {!isLoading && !hasContactData && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col items-center justify-center py-20 space-y-4"
+        >
+          <div className="p-4 bg-brand-primary/10 dark:bg-brand-primary/20 rounded-2xl">
+            <Mail size={40} className="text-brand-primary" />
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              Contact Details Coming Soon
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+              We are currently setting up our contact details. Please wait — you can check back in some time.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Contact Data Loaded */}
+      {!isLoading && hasContactData && contactInfo && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Side: Contact Information Cards */}
+          <div className="lg:col-span-1 space-y-2">
+            {/* Section Header */}
+            <div className="pb-2">
+              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                Contact Information
+              </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Name */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
-                      errors.name 
-                        ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
-                        : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
-                    }`}
-                  />
-                  {errors.name && (
-                    <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
-                      <AlertCircle size={10} /> {errors.name}
-                    </span>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email address"
-                    className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
-                      errors.email 
-                        ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
-                        : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
-                    }`}
-                  />
-                  {errors.email && (
-                    <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
-                      <AlertCircle size={10} /> {errors.email}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Phone */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                    placeholder="Enter 10-digit number"
-                    className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
-                      errors.phoneNumber 
-                        ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
-                        : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
-                    }`}
-                  />
-                  {errors.phoneNumber && (
-                    <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
-                      <AlertCircle size={10} /> {errors.phoneNumber}
-                    </span>
-                  )}
-                </div>
-
-                {/* Subject */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="What is this regarding?"
-                    className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
-                      errors.subject 
-                        ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
-                        : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
-                    }`}
-                  />
-                  {errors.subject && (
-                    <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
-                      <AlertCircle size={10} /> {errors.subject}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Message */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                  Message Details
-                </label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  placeholder="Describe your query or issue in detail..."
-                  rows={5}
-                  className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
-                    errors.message 
-                      ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
-                      : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
-                  }`}
-                />
-                {errors.message && (
-                  <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
-                    <AlertCircle size={10} /> {errors.message}
+            {/* Card 1: Email */}
+            {contactInfo.email && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="relative p-5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
+                      <Mail size={20} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        Email
+                      </span>
+                      <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Write to Us</h3>
+                      <a 
+                        href={`mailto:${contactInfo.email}`}
+                        className="block text-sm font-semibold text-brand-primary hover:underline break-all"
+                      >
+                        {contactInfo.email}
+                      </a>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-200/50 dark:border-emerald-500/20">
+                    24h reply
                   </span>
-                )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Card 2: Phone */}
+            {contactInfo.phoneNumbers.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.05 }}
+                className="relative p-5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
+                      <Phone size={20} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        Phone
+                      </span>
+                      <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Call Us</h3>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                        {contactInfo.hours || 'Mon-Sat, 9:00 AM - 6:00 PM'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-200/50 dark:border-blue-500/20">
+                    Fast
+                  </span>
+                </div>
+                <div className="mt-3 ml-[46px] space-y-2">
+                  {contactInfo.phoneNumbers.map((p: { number: string; label: string }, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                      <div className="flex items-center gap-2.5">
+                        <a 
+                          href={`tel:${p.number}`}
+                          className="text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-brand-primary transition-colors"
+                        >
+                          {p.number}
+                        </a>
+                        {p.label && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-brand-primary dark:text-brand-secondary bg-brand-primary/10 dark:bg-brand-primary/20 px-2 py-0.5 rounded-md">
+                            {p.label}
+                          </span>
+                        )}
+                      </div>
+                      <a
+                        href={`tel:${p.number}`}
+                        className="text-[10px] font-bold text-brand-primary hover:text-brand-primary/80 transition-colors"
+                      >
+                        Call
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Card 3: Address */}
+            {contactInfo.address && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="relative p-5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
+                    <MapPin size={20} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                      Location
+                    </span>
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Visit Us</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                      {contactInfo.address}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Card 4: Operating Hours */}
+            {contactInfo.hours && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.15 }}
+                className="relative p-5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary rounded-xl shrink-0">
+                    <Clock size={20} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                      Hours
+                    </span>
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Working Hours</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-350">
+                      {contactInfo.hours}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Right Side: Message Submission Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Section Header */}
+            <div className="pb-1">
+              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                Send a Message
+              </h2>
+            </div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl shadow-sm space-y-6"
+            >
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Submit a Support Request</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Fill in the details below and our team will get back to you as soon as possible.</p>
               </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={contactMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-primary hover:bg-brand-primary/95 text-white font-extrabold text-sm rounded-xl transition-all shadow-md shadow-brand-primary/10 active:scale-[0.99] disabled:opacity-75"
-              >
-                {contactMutation.isPending ? (
-                  <>
-                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    Sending Message...
-                  </>
-                ) : (
-                  <>
-                    <Send size={15} />
-                    Submit Support Request
-                  </>
-                )}
-              </button>
-            </form>
-          </motion.div>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Your Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Enter your full name"
+                      className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
+                        errors.name 
+                          ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
+                          : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
+                      }`}
+                    />
+                    {errors.name && (
+                      <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
+                        <AlertCircle size={10} /> {errors.name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Email Address <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email address"
+                      className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
+                        errors.email 
+                          ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
+                          : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
+                      }`}
+                    />
+                    {errors.email && (
+                      <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
+                        <AlertCircle size={10} /> {errors.email}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Phone Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      placeholder="Enter 10-digit number"
+                      className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
+                        errors.phoneNumber 
+                          ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
+                          : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
+                      }`}
+                    />
+                    {errors.phoneNumber && (
+                      <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
+                        <AlertCircle size={10} /> {errors.phoneNumber}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Subject */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Subject <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="What is this regarding?"
+                      className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
+                        errors.subject 
+                          ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
+                          : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
+                      }`}
+                    />
+                    {errors.subject && (
+                      <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
+                        <AlertCircle size={10} /> {errors.subject}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                    Message Details <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    placeholder="Describe your query or issue in detail..."
+                    rows={5}
+                    className={`w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/50 dark:bg-slate-950/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all ${
+                      errors.message 
+                        ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' 
+                        : 'border-slate-200 dark:border-slate-800 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'
+                    }`}
+                  />
+                  {errors.message && (
+                    <span className="text-[11px] font-semibold text-rose-500 flex items-center gap-1">
+                      <AlertCircle size={10} /> {errors.message}
+                    </span>
+                  )}
+                </div>
+
+                {/* Required fields note */}
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  Fields marked with <span className="text-rose-500">*</span> are required.
+                </p>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={contactMutation.isPending}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-primary hover:bg-brand-primary/95 text-white font-extrabold text-sm rounded-xl transition-all shadow-md shadow-brand-primary/10 active:scale-[0.99] disabled:opacity-75"
+                >
+                  {contactMutation.isPending ? (
+                    <>
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      Sending Message...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={15} />
+                      Submit Support Request
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Map Embed Section */}
       <motion.div 
@@ -349,8 +457,10 @@ export const SupportPage = () => {
         className="w-full bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm space-y-4"
       >
         <div className="space-y-1">
-          <h3 className="font-bold text-slate-800 dark:text-slate-150">Locate Us</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Visit our office locations or scan/pin us on Google Maps</p>
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            Find Us
+          </h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Visit our office or locate us on Google Maps</p>
         </div>
         <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <iframe

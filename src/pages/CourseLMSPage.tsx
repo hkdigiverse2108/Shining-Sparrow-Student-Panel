@@ -5,12 +5,30 @@ import { useExamForLesson, useCompleteLesson, useExamAttempts } from '../hooks/u
 import { useToast } from '../context/ToastContext';
 import { Loader } from '../components/Loader';
 import { 
-  Lock, Unlock, Download, FileText, ChevronDown, ChevronRight, 
+  Lock, Download, FileText, ChevronDown, ChevronRight, 
   Award, Clock, ArrowRight, Menu, X, HelpCircle, Video, CheckCircle2,
-  Maximize2, Minimize2, RotateCw
+  Maximize2, Minimize2, Calculator, Headphones, Image
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+
+interface ExamAttempt {
+  status: 'pass' | 'fail';
+  obtainedMarks: number;
+  attemptCount: number;
+  timeTaken?: number;
+}
+
+interface Exam {
+  _id: string;
+  title: string;
+  description?: string;
+  totalMarks: number;
+  passingMarks: number;
+  timeLimit: number;
+  priority?: number;
+  attempt?: ExamAttempt | null;
+}
 
 interface Lesson {
   _id: string;
@@ -23,6 +41,7 @@ interface Lesson {
   isUnlocked: boolean;
   practiceMaterial?: string;
   isCompleted?: boolean;
+  exams?: Exam[];
 }
 
 interface SubCourse {
@@ -36,13 +55,6 @@ interface Course {
   name: string;
   courseCurriculumIds?: SubCourse[];
   courseLessonIds?: Lesson[];
-}
-
-interface Exam {
-  _id: string;
-  totalMarks: number;
-  passingMarks: number;
-  timeLimit: number;
 }
 
 // Helper to parse YouTube URLs to embed URLs
@@ -60,19 +72,38 @@ const getEmbedUrl = (url: string) => {
     }
     
     if (videoId) {
-      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
     }
-  }
-  
-  // Force fs=0 to disable the native YouTube fullscreen button
-  if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+  } else {
     const separator = embedUrl.includes('?') ? '&' : '?';
-    if (!embedUrl.includes('fs=')) {
-      embedUrl = `${embedUrl}${separator}fs=0`;
+    if (!embedUrl.includes('controls=')) {
+      embedUrl = `${embedUrl}${separator}autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
     }
   }
   
   return embedUrl;
+};
+
+// Get icon component based on exam title/type
+const getExamTypeIcon = (title: string) => {
+  const lower = (title || '').toLowerCase();
+  if (lower.includes('calculation') || lower.includes('calc')) return Calculator;
+  if (lower.includes('audio') || lower.includes('listening')) return Headphones;
+  if (lower.includes('image') || lower.includes('visual') || lower.includes('picture')) return Image;
+  if (lower.includes('text') || lower.includes('reading') || lower.includes('writing')) return FileText;
+  return HelpCircle;
+};
+
+// Get color classes for exam type
+const getExamTypeColor = (title: string, isSelected: boolean, isUnlocked: boolean) => {
+  if (isSelected) return 'text-white';
+  if (!isUnlocked) return 'text-slate-400/40';
+  const lower = (title || '').toLowerCase();
+  if (lower.includes('calculation') || lower.includes('calc')) return 'text-indigo-500';
+  if (lower.includes('audio') || lower.includes('listening')) return 'text-amber-500';
+  if (lower.includes('image') || lower.includes('visual') || lower.includes('picture')) return 'text-purple-500';
+  if (lower.includes('text') || lower.includes('reading') || lower.includes('writing')) return 'text-blue-500';
+  return 'text-orange-400';
 };
 
 export const CourseLMSPage = () => {
@@ -104,6 +135,7 @@ export const CourseLMSPage = () => {
 
   // Selected Lesson State
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   
   // UI states
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -136,6 +168,7 @@ export const CourseLMSPage = () => {
 
     if (firstUnlockedId) {
       setSelectedLessonId(firstUnlockedId);
+      setSelectedExamId(null);
     }
     if (Object.keys(initialExpanded).length > 0) {
       setExpandedCurriculums(initialExpanded);
@@ -226,6 +259,22 @@ export const CourseLMSPage = () => {
     }
   };
 
+  // Determine active lesson details
+  let activeLesson: Lesson | null | undefined = null;
+  if (selectedLessonId && course) {
+    if (course.courseCurriculumIds && course.courseCurriculumIds.length > 0) {
+      for (const curr of course.courseCurriculumIds) {
+        const found = curr.courseLessonsAssigned?.find((l: Lesson) => l._id === selectedLessonId);
+        if (found) {
+          activeLesson = found;
+          break;
+        }
+      }
+    } else if (course.courseLessonIds) {
+      activeLesson = course.courseLessonIds.find((l: Lesson) => l._id === selectedLessonId);
+    }
+  }
+
   // Determine correct course ID for exam query (sub-course ID for merged courses, parent course ID for single courses)
   let targetCourseId = courseId || '';
   if (course && course.courseCurriculumIds && course.courseCurriculumIds.length > 0 && selectedLessonId) {
@@ -238,13 +287,18 @@ export const CourseLMSPage = () => {
     }
   }
 
-  // Fetch Exam for selected lesson
+  // Determine which exam to view
+  const activeExam = selectedExamId 
+    ? activeLesson?.exams?.find(e => e._id === selectedExamId)
+    : (activeLesson?.exams && activeLesson.exams.length > 0 ? activeLesson.exams[0] : null);
+
+  // Fetch Exam for selected lesson (fallback/compatibility check)
   const { data: examRes } = useExamForLesson(
     targetCourseId,
-    selectedLessonId || ''
+    (selectedExamId ? '' : selectedLessonId) || '' // Skip query if a specific exam is selected or use as fallback
   );
 
-  const exam = (examRes?.data?.exam_data?.length > 0 ? examRes.data.exam_data[0] : null) as Exam | null;
+  const exam = (activeExam || (examRes?.data?.exam_data?.length > 0 ? examRes.data.exam_data[0] : null)) as Exam | null;
 
   // Fetch Exam Attempts
   const { data: attemptsRes } = useExamAttempts(
@@ -254,8 +308,6 @@ export const CourseLMSPage = () => {
 
   const attempts = attemptsRes?.data?.attempt_data || [];
   const latestAttempt = attempts.length > 0 ? attempts[0] : null;
-
-
 
   if (courseLoading) {
     return <Loader />;
@@ -270,22 +322,6 @@ export const CourseLMSPage = () => {
     );
   }
 
-  // Determine active lesson details
-  let activeLesson: Lesson | null | undefined = null;
-  if (selectedLessonId) {
-    if (course && course.courseCurriculumIds && course.courseCurriculumIds.length > 0) {
-      for (const curr of course.courseCurriculumIds) {
-        const found = curr.courseLessonsAssigned?.find((l: Lesson) => l._id === selectedLessonId);
-        if (found) {
-          activeLesson = found;
-          break;
-        }
-      }
-    } else if (course && course.courseLessonIds) {
-      activeLesson = course.courseLessonIds.find((l: Lesson) => l._id === selectedLessonId);
-    }
-  }
-
   const toggleAccordion = (id: string) => {
     setExpandedCurriculums(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -296,6 +332,17 @@ export const CourseLMSPage = () => {
       return;
     }
     setSelectedLessonId(lesson._id);
+    setSelectedExamId(null);
+    setSidebarOpen(false);
+  };
+
+  const handleExamClick = (lesson: Lesson, exam: Exam) => {
+    if (!lesson.isUnlocked) {
+      showToast('This lesson is locked. Complete the previous lesson exam to unlock!', 'warning');
+      return;
+    }
+    setSelectedLessonId(lesson._id);
+    setSelectedExamId(exam._id);
     setSidebarOpen(false);
   };
 
@@ -349,7 +396,7 @@ export const CourseLMSPage = () => {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {isSidebarCollapsed ? (
-            // Collapsed view: flat list of all lessons in sequence
+            // Collapsed view: flat list of all lessons and exams in sequence
             <div className="flex flex-col items-center gap-3">
               {(() => {
                 // Flatten all lessons
@@ -362,9 +409,14 @@ export const CourseLMSPage = () => {
                   flatLessons = course.courseLessonIds || [];
                 }
 
-                return flatLessons.map((lesson: Lesson, index: number) => {
-                  const isSelected = lesson._id === selectedLessonId;
-                  return (
+                const items: React.ReactNode[] = [];
+                let lessonIndex = 0;
+                flatLessons.forEach((lesson: Lesson) => {
+                  lessonIndex++;
+                  const isLessonSelected = lesson._id === selectedLessonId && !selectedExamId;
+                  
+                  // Render lesson button
+                  items.push(
                     <button
                       key={lesson._id}
                       onClick={() => handleLessonClick(lesson)}
@@ -374,7 +426,7 @@ export const CourseLMSPage = () => {
                           ? 'border-emerald-500 dark:border-emerald-400'
                           : 'border-transparent'
                       } ${
-                        isSelected
+                        isLessonSelected
                           ? 'bg-orange-600 text-white shadow-md scale-105'
                           : lesson.isCompleted
                           ? 'bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-600 hover:bg-emerald-100'
@@ -382,18 +434,53 @@ export const CourseLMSPage = () => {
                           ? 'bg-orange-50/50 dark:bg-orange-950/10 text-orange-600 hover:bg-orange-100'
                           : 'text-slate-400 opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800'
                       }`}
-                      title={`${index + 1}. ${lesson.title} ${lesson.isUnlocked ? '' : '(Locked)'}`}
+                      title={`${lessonIndex}. ${lesson.title} ${lesson.isUnlocked ? '' : '(Locked)'}`}
                     >
                       {lesson.isCompleted ? (
-                        <span className="font-bold text-xs">{index + 1}</span>
+                        <CheckCircle2 size={16} />
                       ) : lesson.isUnlocked ? (
-                        isSelected ? <Unlock size={16} /> : <span className="font-bold text-xs">{index + 1}</span>
+                        isLessonSelected ? <Video size={16} /> : <Video size={16} />
                       ) : (
                         <Lock size={16} />
                       )}
                     </button>
                   );
+
+                  // Render exam buttons if lesson contains exams
+                  if (lesson.exams && lesson.exams.length > 0) {
+                    lesson.exams.forEach((exam: Exam) => {
+                      const isExamSelected = selectedExamId === exam._id;
+                      const isPassed = exam.attempt?.status === 'pass';
+                      const ExamIcon = getExamTypeIcon(exam.title);
+                      items.push(
+                        <button
+                          key={exam._id}
+                          onClick={() => handleExamClick(lesson, exam)}
+                          disabled={!lesson.isUnlocked}
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center relative transition-all border ${
+                            isPassed
+                              ? 'border-emerald-500 text-emerald-600 bg-emerald-50/30'
+                              : 'border-transparent'
+                          } ${
+                            isExamSelected
+                              ? 'bg-orange-500 text-white shadow-sm scale-105'
+                              : lesson.isUnlocked
+                              ? 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                              : 'text-slate-400 opacity-40 cursor-not-allowed bg-slate-100'
+                          }`}
+                          title={`${exam.title || 'Lesson Exam'} ${lesson.isUnlocked ? '' : '(Locked)'}`}
+                        >
+                          {lesson.isUnlocked ? (
+                            isPassed ? <Award size={14} className="text-emerald-500" /> : <ExamIcon size={14} className={getExamTypeColor(exam.title, isExamSelected, lesson.isUnlocked)} />
+                          ) : (
+                            <Lock size={12} />
+                          )}
+                        </button>
+                      );
+                    });
+                  }
                 });
+                return items;
               })()}
             </div>
           ) : (
@@ -421,28 +508,65 @@ export const CourseLMSPage = () => {
                         >
                           {subCourse.courseLessonsAssigned?.map((lesson: Lesson) => {
                             const isSelected = lesson._id === selectedLessonId;
+                            const isLessonSelected = isSelected && !selectedExamId;
+                            const isLessonActiveContext = isSelected && !!selectedExamId;
                             return (
-                              <button
-                                key={lesson._id}
-                                onClick={() => handleLessonClick(lesson)}
-                                disabled={!lesson.isUnlocked}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
-                                  isSelected
-                                    ? 'bg-orange-600 text-white shadow-md'
-                                    : lesson.isUnlocked
-                                    ? 'text-slate-700 dark:text-slate-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/10'
-                                    : 'text-slate-400 opacity-60 cursor-not-allowed'
-                                }`}
-                              >
-                                {lesson.isCompleted ? (
-                                  <CheckCircle2 size={14} className="text-emerald-500 fill-emerald-500/10 shrink-0" />
-                                ) : lesson.isUnlocked ? (
-                                  <Unlock size={14} className={isSelected ? 'text-white shrink-0' : 'text-orange-500 shrink-0'} />
-                                ) : (
-                                  <Lock size={14} className="text-slate-400 shrink-0" />
+                              <div key={lesson._id} className="space-y-1">
+                                <button
+                                  onClick={() => handleLessonClick(lesson)}
+                                  disabled={!lesson.isUnlocked}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
+                                    isLessonSelected
+                                      ? 'bg-orange-600 text-white shadow-md'
+                                      : isLessonActiveContext
+                                      ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-900/40'
+                                      : lesson.isUnlocked
+                                      ? 'text-slate-700 dark:text-slate-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/10'
+                                      : 'text-slate-400 opacity-60 cursor-not-allowed'
+                                  }`}
+                                >
+                                  {lesson.isCompleted ? (
+                                    <CheckCircle2 size={14} className="text-emerald-500 fill-emerald-500/10 shrink-0" />
+                                  ) : lesson.isUnlocked ? (
+                                    <Video size={14} className={isLessonSelected ? 'text-white shrink-0' : 'text-orange-500 shrink-0'} />
+                                  ) : (
+                                    <Lock size={14} className="text-slate-400 shrink-0" />
+                                  )}
+                                  <span className="truncate">{lesson.title}</span>
+                                </button>
+                                {lesson.exams && lesson.exams.length > 0 && (
+                                  <div className="pl-6 space-y-1 pt-0.5 pb-1">
+                                    {lesson.exams.map((exam: Exam) => {
+                                      const isExamSelected = selectedExamId === exam._id;
+                                      const isPassed = exam.attempt?.status === 'pass';
+                                      const ExamIcon = getExamTypeIcon(exam.title);
+                                      return (
+                                        <button
+                                          key={exam._id}
+                                          onClick={() => handleExamClick(lesson, exam)}
+                                          disabled={!lesson.isUnlocked}
+                                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[11px] font-semibold transition-all ${
+                                            isExamSelected
+                                              ? 'bg-orange-500 text-white shadow-sm'
+                                              : lesson.isUnlocked
+                                              ? 'text-slate-600 dark:text-slate-400 hover:bg-orange-50/20 dark:hover:bg-orange-950/5'
+                                              : 'text-slate-400/50 cursor-not-allowed'
+                                          }`}
+                                        >
+                                          {isPassed ? (
+                                            <Award size={12} className="text-emerald-500 shrink-0" />
+                                          ) : lesson.isUnlocked ? (
+                                            <ExamIcon size={12} className={`${getExamTypeColor(exam.title, isExamSelected, lesson.isUnlocked)} shrink-0`} />
+                                          ) : (
+                                            <Lock size={12} className="text-slate-400/40 shrink-0" />
+                                          )}
+                                          <span className="truncate">{exam.title || 'Lesson Exam'}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 )}
-                                <span className="truncate">{lesson.title}</span>
-                              </button>
+                              </div>
                             );
                           })}
                         </motion.div>
@@ -455,28 +579,65 @@ export const CourseLMSPage = () => {
               <div className="space-y-1.5">
                 {course.courseLessonIds?.map((lesson: Lesson) => {
                   const isSelected = lesson._id === selectedLessonId;
+                  const isLessonSelected = isSelected && !selectedExamId;
+                  const isLessonActiveContext = isSelected && !!selectedExamId;
                   return (
-                    <button
-                      key={lesson._id}
-                      onClick={() => handleLessonClick(lesson)}
-                      disabled={!lesson.isUnlocked}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-xs font-semibold transition-all ${
-                        isSelected
-                          ? 'bg-orange-600 text-white shadow-md'
-                          : lesson.isUnlocked
-                          ? 'text-slate-700 dark:text-slate-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/10'
-                          : 'text-slate-400 opacity-60 cursor-not-allowed'
-                      }`}
-                    >
-                      {lesson.isCompleted ? (
-                        <CheckCircle2 size={14} className="text-emerald-500 fill-emerald-500/10 shrink-0" />
-                      ) : lesson.isUnlocked ? (
-                        <Unlock size={14} className={isSelected ? 'text-white shrink-0' : 'text-orange-500 shrink-0'} />
-                      ) : (
-                        <Lock size={14} className="text-slate-400 shrink-0" />
+                    <div key={lesson._id} className="space-y-1">
+                      <button
+                        onClick={() => handleLessonClick(lesson)}
+                        disabled={!lesson.isUnlocked}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-xs font-semibold transition-all ${
+                          isLessonSelected
+                            ? 'bg-orange-600 text-white shadow-md'
+                            : isLessonActiveContext
+                            ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 font-bold border border-orange-200 dark:border-orange-900/40'
+                            : lesson.isUnlocked
+                            ? 'text-slate-700 dark:text-slate-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/10'
+                            : 'text-slate-400 opacity-60 cursor-not-allowed'
+                        }`}
+                      >
+                        {lesson.isCompleted ? (
+                          <CheckCircle2 size={14} className="text-emerald-500 fill-emerald-500/10 shrink-0" />
+                        ) : lesson.isUnlocked ? (
+                          <Video size={14} className={isLessonSelected ? 'text-white shrink-0' : 'text-orange-500 shrink-0'} />
+                        ) : (
+                          <Lock size={14} className="text-slate-400 shrink-0" />
+                        )}
+                        <span className="truncate">{lesson.title}</span>
+                      </button>
+                      {lesson.exams && lesson.exams.length > 0 && (
+                        <div className="pl-6 space-y-1 pt-0.5 pb-1">
+                          {lesson.exams.map((exam: Exam) => {
+                            const isExamSelected = selectedExamId === exam._id;
+                            const isPassed = exam.attempt?.status === 'pass';
+                            const ExamIcon = getExamTypeIcon(exam.title);
+                            return (
+                              <button
+                                key={exam._id}
+                                onClick={() => handleExamClick(lesson, exam)}
+                                disabled={!lesson.isUnlocked}
+                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[11px] font-semibold transition-all ${
+                                  isExamSelected
+                                    ? 'bg-orange-500 text-white shadow-sm'
+                                    : lesson.isUnlocked
+                                    ? 'text-slate-600 dark:text-slate-400 hover:bg-orange-50/20 dark:hover:bg-orange-950/5'
+                                    : 'text-slate-400/50 cursor-not-allowed'
+                                }`}
+                              >
+                                {isPassed ? (
+                                  <Award size={12} className="text-emerald-500 shrink-0" />
+                                ) : lesson.isUnlocked ? (
+                                  <ExamIcon size={12} className={`${getExamTypeColor(exam.title, isExamSelected, lesson.isUnlocked)} shrink-0`} />
+                                ) : (
+                                  <Lock size={12} className="text-slate-400/40 shrink-0" />
+                                )}
+                                <span className="truncate">{exam.title || 'Lesson Exam'}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
-                      <span className="truncate">{lesson.title}</span>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -496,10 +657,102 @@ export const CourseLMSPage = () => {
         animate="animate"
         className="grow p-4 sm:p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-3 gap-8"
       >
-        
-        {/* CENTER AREA */}
+              {/* CENTER AREA */}
         <div className="xl:col-span-2 space-y-6">
-          {activeLesson ? (
+          {selectedExamId && exam ? (
+            <div className="ui-card p-6 sm:p-8 space-y-6 animate-fade-in">
+              <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-orange-100 dark:border-slate-800">
+                <span className="w-16 h-16 rounded-3xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-3xl shadow-sm">
+                  📝
+                </span>
+                <h2 className="font-display font-extrabold text-2xl text-slate-900 dark:text-white leading-tight">
+                  {exam.title || 'Lesson Exam'}
+                </h2>
+                {exam.description && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
+                    {exam.description}
+                  </p>
+                )}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                  <span>Lesson: {activeLesson?.title}</span>
+                </div>
+              </div>
+
+              {/* Exam Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                  <span className="text-slate-400 text-xs font-semibold mb-1">Total Marks</span>
+                  <span className="font-extrabold text-lg text-slate-800 dark:text-white">{exam.totalMarks} Marks</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                  <span className="text-slate-400 text-xs font-semibold mb-1">Passing Marks</span>
+                  <span className="font-extrabold text-lg text-emerald-600 dark:text-emerald-400">{exam.passingMarks} Marks</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                  <span className="text-slate-400 text-xs font-semibold mb-1">Time Limit</span>
+                  <span className="font-extrabold text-lg text-slate-800 dark:text-white">{exam.timeLimit} Minutes</span>
+                </div>
+              </div>
+
+              {/* Attempt History Card */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-sm text-slate-800 dark:text-white">Your Attempt Status</h4>
+                {latestAttempt ? (
+                  <div className="p-5 rounded-2xl border border-orange-100/50 dark:border-slate-800/40 bg-orange-50/10 dark:bg-slate-950/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <span className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-xs ${
+                        latestAttempt.status === 'pass' 
+                          ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600' 
+                          : 'bg-red-50 dark:bg-red-950/30 text-red-600'
+                      }`}>
+                        {latestAttempt.status === 'pass' ? '🎉' : '❌'}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-slate-800 dark:text-white">
+                            {latestAttempt.status === 'pass' ? 'Exam Passed' : 'Exam Failed'}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                            latestAttempt.status === 'pass'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                              : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
+                          }`}>
+                            {latestAttempt.status === 'pass' ? 'Passed' : 'Needs Review'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Score: <span className="font-bold text-slate-700 dark:text-slate-350">{latestAttempt.obtainedMarks} / {exam.totalMarks}</span> (Attempts: {latestAttempt.attemptCount || 1})
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to={`/exam/${exam._id}?courseId=${courseId}`}
+                      className="ui-button-primary py-3 px-6 text-xs gap-2 shrink-0 w-full sm:w-auto justify-center"
+                    >
+                      <span>{latestAttempt.status === 'pass' ? 'Retake Exam' : 'Re-take Timed Exam'}</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="p-5 rounded-2xl border border-orange-100/50 dark:border-slate-800/40 bg-orange-50/10 dark:bg-slate-950/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Not Attempted Yet</span>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Test your understanding of the lesson. Passing the exam is required to unlock subsequent content.
+                      </p>
+                    </div>
+                    <Link
+                      to={`/exam/${exam._id}?courseId=${courseId}`}
+                      className="ui-button-primary py-3 px-6 text-xs gap-2 shrink-0 w-full sm:w-auto justify-center"
+                    >
+                      <span>Start Timed Exam</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : activeLesson ? (
             <>
               {/* Player — uses videoLink directly from lesson */}
               {activeLesson.videoLink ? (
@@ -525,13 +778,12 @@ export const CourseLMSPage = () => {
                       
                       {/* Top bar visual shield + branding */}
                       <div 
-                        key={selectedLessonId || 'topbar'}
                         className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/90 to-slate-950/20 backdrop-blur-[2px] z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! group-hover:backdrop-blur-[2px]! transition-all duration-500"
                       >
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></span>
                           <span className="text-sm font-bold text-white tracking-wide truncate max-w-70 sm:max-w-md">
-                            {activeLesson.title}
+                            {activeLesson.title || 'Course Video'}
                           </span>
                         </div>
                       </div>
@@ -542,20 +794,20 @@ export const CourseLMSPage = () => {
                           Shining Sparrow
                         </div>
                       </div>
-                      
+
+                      {/* Invisible pointer-events overlays to capture clicks in key redirect regions */}
+                      <div className="absolute top-0 left-0 right-0 h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                      <div className="absolute bottom-0 left-0 w-[20%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                      <div className="absolute bottom-0 right-0 w-[38%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+
                       {/* Custom Fullscreen Toggle Button */}
                       <button
                         onClick={toggleFullscreen}
-                        className="absolute bottom-3 left-3 z-20 p-2.5 bg-slate-950/80 hover:bg-slate-900 text-white rounded-full border border-white/10 shadow-lg cursor-pointer transition-colors"
+                        className="absolute bottom-2 left-14 z-20 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm border border-white/20 shadow-lg cursor-pointer transition-colors"
                         title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                       >
-                        {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                        {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                       </button>
- 
-                      {/* Invisible pointer-events overlays to capture any remaining clicks in those areas */}
-                      <div className="absolute top-0 left-0 right-0 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
-                      <div className="absolute bottom-0 left-0 w-48 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
-                      <div className="absolute bottom-0 right-0 w-56 h-16 z-10 bg-transparent cursor-default pointer-events-auto" />
                     </>
                   ) : (
                     <video
@@ -624,8 +876,6 @@ export const CourseLMSPage = () => {
                   </div>
                 )}
               </div>
-
-
             </>
           ) : (
             <div className="ui-card border border-dashed text-center py-24">
@@ -642,129 +892,78 @@ export const CourseLMSPage = () => {
         <div className="xl:col-span-1 self-start w-full">
           {activeLesson && (
             <div className="sticky top-24 ui-card space-y-6 p-6">
-              {exam ? (
+              {activeLesson.exams && activeLesson.exams.length > 0 ? (
                 <div className="space-y-6">
                   <div className="space-y-2 text-center border-b dark:border-slate-700 pb-5">
                     <span className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xl mx-auto">
                       📝
                     </span>
                     <h3 className="font-display font-extrabold text-lg text-slate-900 dark:text-white leading-tight">
-                      Lesson Exam Center
+                      Lesson Exams
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Passing unlocks the next lesson.
+                      Complete all exams to unlock the next lesson.
                     </p>
                   </div>
-
-                  {latestAttempt ? (
-                    <div className="space-y-6">
-                      <div className="text-center space-y-2">
-                        {latestAttempt.status === 'pass' ? (
-                          <>
-                            <span className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-sm">
-                              🎉
-                            </span>
-                            <h4 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
-                              Exam Passed!
-                            </h4>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                              <span>Passed</span>
-                              <Award size={10} />
+                  
+                  <div className="space-y-3">
+                    {activeLesson.exams.map((ex: Exam, index: number) => {
+                      const isExPassed = ex.attempt?.status === 'pass';
+                      const isSelected = selectedExamId === ex._id;
+                      return (
+                        <div 
+                          key={ex._id} 
+                          className={`p-4 rounded-2xl border transition-all ${
+                            isSelected 
+                              ? 'border-orange-500 bg-orange-500/5' 
+                              : 'border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="block text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                                {index + 1}. {ex.title || 'Lesson Exam'}
+                              </span>
+                              <span className="block text-[10px] text-slate-500 mt-0.5">
+                                {ex.totalMarks} Marks • {ex.timeLimit}m
+                              </span>
                             </div>
-                          </>
-                        ) : (
-                          <>
-                            <span className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl mx-auto shadow-sm">
-                              ❌
-                            </span>
-                            <h4 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
-                              Exam Failed
-                            </h4>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                              <span>Try Again</span>
-                              <RotateCw size={10} />
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="space-y-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-orange-100/50 dark:border-slate-800/40 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Award size={14} /> Your Score:
-                          </span>
-                          <span className={`font-bold ${latestAttempt.status === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {latestAttempt.obtainedMarks} / {exam.totalMarks} Marks
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <CheckCircle2 size={14} /> Passing Mark:
-                          </span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{exam.passingMarks} Marks</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <RotateCw size={14} /> Attempts:
-                          </span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{latestAttempt.attemptCount || 1}</span>
-                        </div>
-                        {latestAttempt.timeTaken && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-400 flex items-center gap-1.5">
-                              <Clock size={14} /> Time Taken:
-                            </span>
-                            <span className="font-bold text-slate-800 dark:text-slate-200">
-                              {Math.floor(latestAttempt.timeTaken / 60)}m {latestAttempt.timeTaken % 60}s
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                              isExPassed
+                                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                : ex.attempt
+                                ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                            }`}>
+                              {isExPassed ? 'Passed' : ex.attempt ? 'Failed' : 'Pending'}
                             </span>
                           </div>
-                        )}
-                      </div>
-
-                      <Link
-                        to={`/exam/${exam._id}?courseId=${courseId}`}
-                        className="ui-button-primary w-full py-3.5 text-xs gap-2"
-                      >
-                        <span>{latestAttempt.status === 'pass' ? 'Retake Exam' : 'Re-take Timed Exam'}</span>
-                        <ArrowRight size={14} />
-                      </Link>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-orange-100/50 dark:border-slate-800/40 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Award size={14} /> Total Score:
-                          </span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{exam.totalMarks} Marks</span>
+                          
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => handleExamClick(activeLesson!, ex)}
+                              className={`flex-1 py-1.5 px-3 rounded-lg text-[10px] font-bold text-center transition-all ${
+                                isSelected 
+                                  ? 'bg-orange-600 text-white shadow-sm' 
+                                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              {isSelected ? 'Viewing' : 'Details'}
+                            </button>
+                            
+                            <Link
+                              to={`/exam/${ex._id}?courseId=${courseId}`}
+                              className="flex-1 py-1.5 px-3 rounded-lg text-[10px] font-bold text-center bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30 hover:bg-orange-100 hover:text-orange-700"
+                            >
+                              {isExPassed ? 'Retake' : 'Start'}
+                            </Link>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <CheckCircle2 size={14} /> Passing Mark:
-                          </span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{exam.passingMarks} Marks</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 flex items-center gap-1.5">
-                            <Clock size={14} /> Time Limit:
-                          </span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">
-                            {Math.floor(exam.timeLimit / 60)} minutes
-                          </span>
-                        </div>
-                      </div>
-
-                      <Link
-                        to={`/exam/${exam._id}?courseId=${courseId}`}
-                        className="ui-button-primary w-full py-3.5 text-xs gap-2"
-                      >
-                        <span>Start Timed Exam</span>
-                        <ArrowRight size={14} />
-                      </Link>
-                    </>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
-              ) : activeLesson?.isCompleted ? (
+              ) : activeLesson.isCompleted ? (
                 <div className="text-center py-10 space-y-4">
                   <span className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-sm">
                     🎉

@@ -10,6 +10,13 @@ export const useSettings = () => {
   });
 };
 
+export const useContactUsInfo = () => {
+  return useQuery({
+    queryKey: ['contact-us'],
+    queryFn: () => settingsService.getContactUs(),
+  });
+};
+
 export const useHeroBanners = (params?: { page?: number; limit?: number; type?: string }) => {
   return useQuery({
     queryKey: ['hero-banners', params],

@@ -231,11 +231,13 @@ export const ExamInterfacePage = () => {
   }
 
   const handleStartExam = () => {
-    setTimeRemaining(exam.timeLimit);
-    setExamStarted(true);
-    setCurrentQuestionIndex(0);
-    setAnswers({});
-    setTimeTaken(0);
+    if (exam) {
+      setTimeRemaining(exam.timeLimit * 60);
+      setExamStarted(true);
+      setCurrentQuestionIndex(0);
+      setAnswers({});
+      setTimeTaken(0);
+    }
   };
 
   const handleAnswerChange = (questionId: string, value: string) => {
@@ -981,7 +983,7 @@ export const ExamInterfacePage = () => {
           <div className="flex justify-between items-center">
             <span className="text-slate-400">Assessment Time:</span>
             <span className="font-bold text-slate-800 dark:text-slate-200">
-              {Math.floor(exam.timeLimit / 60)} minutes
+              {exam.timeLimit} minutes
             </span>
           </div>
           <div className="flex items-start gap-1.5 border-t dark:border-slate-700 pt-3 text-rose-500/80">

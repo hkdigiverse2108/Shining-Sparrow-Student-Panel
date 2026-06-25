@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMyCourses, useCourses } from '../hooks/useCourses';
 import { useMyWorkshops, useWorkshops } from '../hooks/useWorkshops';
+import { useWorkshopProgress } from '../hooks/useLMS';
 import { useBlogs } from '../hooks/useBlogs';
 import { useHeroBanners } from '../hooks/useSettings';
 import { CardSkeleton } from '../components/Loader';
@@ -256,6 +257,14 @@ const cardItemVariants = {
       damping: 14,
     },
   },
+};
+
+// Wrapper component to fetch real workshop progress (hooks can't be called in .map())
+const WorkshopProgressCard = ({ enrollment, children }: { enrollment: EnrolledWorkshop; children: (progress: { completedCount: number; totalCount: number } | null) => React.ReactNode }) => {
+  const workshopId = enrollment.workshopId?._id;
+  const { data: progressRes } = useWorkshopProgress(workshopId || '');
+  const progress = progressRes?.data || null;
+  return <>{children(progress)}</>;
 };
 
 export const Dashboard = () => {
@@ -573,71 +582,82 @@ export const Dashboard = () => {
                             if (!workshop) return null;
 
                             return (
-                              <motion.div
-                                key={enrollment._id}
-                                variants={cardItemVariants}
-                                className="ui-card ui-card-hover flex flex-col justify-between space-y-4 relative overflow-hidden group"
-                              >
-                                {/* Glowing accent bubble */}
-                                <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-secondary/5 rounded-full blur-2xl group-hover:bg-brand-secondary/10 transition-colors duration-300" />
+                              <WorkshopProgressCard key={enrollment._id} enrollment={enrollment}>
+                                {(progress) => {
+                                  const completedCount = progress?.completedCount || 0;
+                                  const totalCount = progress?.totalCount || 0;
+                                  return (
+                                    <motion.div
+                                      variants={cardItemVariants}
+                                      className="ui-card ui-card-hover flex flex-col justify-between space-y-4 relative overflow-hidden group"
+                                    >
+                                      {/* Glowing accent bubble */}
+                                      <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-secondary/5 rounded-full blur-2xl group-hover:bg-brand-secondary/10 transition-colors duration-300" />
 
-                                <div className="space-y-4 relative z-10">
-                                  {/* Top banner image */}
-                                  <div className="h-36 bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
-                                    <img
-                                      src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
-                                      alt={workshop.title}
-                                      className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
-                                      onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
-                                    />
-                                    {/* Status tag absolute on top right */}
-                                    <div className="absolute top-2.5 right-2.5 px-2.5 py-1 bg-brand-secondary text-white rounded-full text-[9px] font-black shadow-md">
-                                      Classroom Live
-                                    </div>
-                                    <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white rounded-md text-[9px] font-black uppercase tracking-wider">
-                                      Live Stream
-                                    </div>
-                                  </div>
+                                      <div className="space-y-4 relative z-10">
+                                        {/* Top banner image */}
+                                        <div className="h-36 bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                                          <img
+                                            src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
+                                            alt={workshop.title}
+                                            className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                                            onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
+                                          />
+                                          {/* Status tag absolute on top right */}
+                                          <div className="absolute top-2.5 right-2.5 px-2.5 py-1 bg-brand-secondary text-white rounded-full text-[9px] font-black shadow-md">
+                                            Classroom Live
+                                          </div>
+                                          <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white rounded-md text-[9px] font-black uppercase tracking-wider">
+                                            Live Stream
+                                          </div>
+                                        </div>
 
-                                  <div className="space-y-3">
-                                    <h4 className="font-display font-black text-sm text-slate-800 dark:text-white line-clamp-1 leading-snug tracking-tight group-hover:text-brand-secondary transition-colors">
-                                      {workshop.title}
-                                    </h4>
+                                        <div className="space-y-3">
+                                          <h4 className="font-display font-black text-sm text-slate-800 dark:text-white line-clamp-1 leading-snug tracking-tight group-hover:text-brand-secondary transition-colors">
+                                            {workshop.title}
+                                          </h4>
 
-                                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-900/40 px-3.5 py-2.5 rounded-2xl border border-orange-100/20 dark:border-slate-800/30">
-                                      <span className="font-semibold flex items-center gap-1">
-                                        <Clock size={12} className="text-slate-400" /> Duration
-                                      </span>
-                                      <span className="font-extrabold text-slate-700 dark:text-slate-300">
-                                        {workshop.duration || 'Full Session Access'}
-                                      </span>
-                                    </div>
+                                          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-900/40 px-3.5 py-2.5 rounded-2xl border border-orange-100/20 dark:border-slate-800/30">
+                                            <span className="font-semibold flex items-center gap-1">
+                                              <Clock size={12} className="text-slate-400" /> Duration
+                                            </span>
+                                            <span className="font-extrabold text-slate-700 dark:text-slate-300">
+                                              {workshop.duration || 'Full Session Access'}
+                                            </span>
+                                          </div>
 
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between items-center text-[11px] font-bold text-slate-500">
-                                        <span>Workshop Progress</span>
-                                        <span className="text-brand-secondary">Class 1/4</span>
+                                          <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-[11px] font-bold text-slate-500">
+                                              <span>Workshop Progress</span>
+                                              <span className="text-brand-secondary">
+                                                {totalCount > 0 ? `Class ${completedCount}/${totalCount}` : 'No sessions yet'}
+                                              </span>
+                                            </div>
+                                            {totalCount > 0 && (
+                                              <div className="flex items-center gap-1">
+                                                {renderVisualChecklist(completedCount, totalCount)}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="flex items-center gap-1">
-                                        {renderVisualChecklist(1, 4)}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
 
-                                <div className="pt-4 border-t border-orange-100/30 dark:border-slate-800/40 flex justify-between items-center gap-3 relative z-10">
-                                  <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
-                                    <Video size={14} className="text-brand-secondary" />
-                                    <span>Live Video Access</span>
-                                  </div>
-                                  <Link
-                                    to={`/courses/${workshop._id}?type=workshop&from=classroom`}
-                                    className="ui-button-secondary px-4.5 py-2"
-                                  >
-                                    Enter Stream
-                                  </Link>
-                                </div>
-                              </motion.div>
+                                      <div className="pt-4 border-t border-orange-100/30 dark:border-slate-800/40 flex justify-between items-center gap-3 relative z-10">
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+                                          <Video size={14} className="text-brand-secondary" />
+                                          <span>Live Video Access</span>
+                                        </div>
+                                        <Link
+                                          to={`/courses/${workshop._id}?type=workshop&from=classroom`}
+                                          className="ui-button-secondary px-4.5 py-2"
+                                        >
+                                          Enter Stream
+                                        </Link>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                }}
+                              </WorkshopProgressCard>
                             );
                           })}
                         </motion.div>
@@ -660,7 +680,7 @@ export const Dashboard = () => {
                       Courses Available for Instant Purchase
                     </h3>
                     <p className="text-xs text-slate-400 dark:text-slate-400">
-                      Unlock structural abacus and finger math courses with Secure Razorpay Checkout.
+                      Unlock structural abacus and finger math courses with Secure Online Checkout.
                     </p>
                   </div>
                   <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
@@ -1060,7 +1080,7 @@ export const Dashboard = () => {
                   </div>
                   <div className="space-y-1 pt-1.5 border-t border-orange-50/30 dark:border-slate-800/20">
                     <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                      Where is my Razorpay receipt?
+                      Where is my payment receipt?
                     </p>
                     <p className="text-slate-500 dark:text-slate-400">
                       Sent to your registered email address automatically post-checkout.

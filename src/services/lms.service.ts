@@ -56,6 +56,16 @@ const lmsService = {
     return response.data;
   },
 
+  completeWorkshopCurriculum: async (payload: { workshopId: string; workshopCurriculumId: string }) => {
+    const response = await client.post('/workshop-curriculum/complete', payload);
+    return response.data;
+  },
+
+  getWorkshopProgress: async (workshopId: string) => {
+    const response = await client.get(`/workshop-curriculum/progress/${workshopId}`);
+    return response.data;
+  },
+
   completeLesson: async (payload: { courseId: string; courseLessonId: string }) => {
     const response = await client.post('/course-lesson/complete', payload);
     return response.data;

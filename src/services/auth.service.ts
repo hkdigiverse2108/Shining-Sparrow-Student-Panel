@@ -32,6 +32,7 @@ export interface UpdateProfilePayload {
   std?: string;
   reachFrom?: string;
   schoolName?: string;
+  address?: string;
 }
 
 export interface ChangePasswordPayload {
@@ -61,6 +62,11 @@ const authService = {
     return response.data;
   },
 
+  forgotOtr: async (email: string) => {
+    const response = await client.post('/auth/forgot-otr', { email });
+    return response.data;
+  },
+
   adminLogin: async (payload: AdminLoginPayload) => {
     const data = {
       userType: 'admin',
@@ -81,6 +87,7 @@ const authService = {
       std: payload.std,
       reachFrom: payload.reachFrom,
       schoolName: payload.schoolName,
+      address: payload.address,
     };
     const response = await client.post('/auth/update-profile', data);
     return response.data;

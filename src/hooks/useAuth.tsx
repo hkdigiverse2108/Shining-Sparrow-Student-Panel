@@ -17,6 +17,7 @@ export interface StudentProfile {
   profilePhoto?: string;
   designation?: string;
   schoolName?: string;
+  address?: string;
 }
 
 interface AuthContextType {
@@ -130,6 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           std: payload.std !== undefined ? payload.std : student?.std,
           reachFrom: payload.reachFrom !== undefined ? payload.reachFrom : student?.reachFrom,
           schoolName: payload.schoolName !== undefined ? payload.schoolName : student?.schoolName,
+          address: payload.address !== undefined ? payload.address : student?.address,
         } as StudentProfile;
 
         localStorage.setItem('shining_sparrow_student_profile', JSON.stringify(updatedStudent));

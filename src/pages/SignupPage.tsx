@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
@@ -7,12 +7,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 
 const REACH_SOURCES = [
-  'Social Media',
-  'Friend / Referral',
-  'School Seminar',
-  'Web Search',
-  'Advertisement',
-  'Other',
+  'Social media',
+  'Friends/relatives',
+  'Webinars',
+  'Offline branch visit',
+  'Web search',
+  'Schools',
+  'Others',
 ];
 
 const STANDARD_OPTIONS = [
@@ -48,6 +49,43 @@ export const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [otrCode, setOtrCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Autocomplete state
+  const [districtsList, setDistrictsList] = useState<string[]>([]);
+  const [filteredDistricts, setFilteredDistricts] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.states) {
+          const allDistricts = data.states.flatMap((s: any) => s.districts);
+          const uniqueDistricts = Array.from(new Set(allDistricts)).sort() as string[];
+          setDistrictsList(uniqueDistricts);
+        }
+      })
+      .catch(err => console.error("Error fetching districts:", err));
+  }, []);
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setDistrict(val);
+    if (val.trim().length > 1) {
+      const filtered = districtsList.filter(d => 
+        d.toLowerCase().includes(val.toLowerCase())
+      ).slice(0, 10);
+      setFilteredDistricts(filtered);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectDistrict = (d: string) => {
+    setDistrict(d);
+    setShowSuggestions(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,7 +243,7 @@ export const SignupPage = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 relative">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-500">
                 District
               </label>
@@ -215,11 +253,25 @@ export const SignupPage = () => {
                   type="text"
                   required
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
+                  onChange={handleDistrictChange}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   placeholder="Surat"
                   className="ui-input pl-11 font-semibold"
                 />
               </div>
+              {showSuggestions && filteredDistricts.length > 0 && (
+                <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50 p-0 m-0 list-none">
+                  {filteredDistricts.map((d) => (
+                    <li
+                      key={d}
+                      onClick={() => handleSelectDistrict(d)}
+                      className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                    >
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 

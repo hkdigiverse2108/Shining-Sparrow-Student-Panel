@@ -18,6 +18,11 @@ const settingsService = {
     return response.data;
   },
 
+  getContactUs: async () => {
+    const response = await client.get('/contact-us/all');
+    return response.data;
+  },
+
   getHeroBanners: async (params?: { page?: number; limit?: number; type?: string }) => {
     const response = await client.get('/hero-banner/all', {
       params: { type: 'web', ...params },

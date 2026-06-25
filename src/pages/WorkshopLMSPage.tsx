@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWorkshop } from '../hooks/useWorkshops';
-import { useWorkshopCurriculums } from '../hooks/useLMS';
+import { useWorkshopCurriculums, useCompleteWorkshopCurriculum, useWorkshopProgress } from '../hooks/useLMS';
 import { Loader } from '../components/Loader';
-import { Play, Download, FileText, ArrowLeft, Video } from 'lucide-react';
+import { Play, Download, FileText, ArrowLeft, Video, Maximize2, Minimize2, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 
@@ -45,7 +45,13 @@ const getEmbedUrl = (url: string) => {
   let embedUrl = url;
   
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    if (url.includes('youtube.com/embed/')) return url;
+    if (url.includes('youtube.com/embed/')) {
+      const separator = url.includes('?') ? '&' : '?';
+      if (!url.includes('controls=')) {
+        return `${url}${separator}autoplay=1&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
+      }
+      return url;
+    }
     
     let videoId = '';
     
@@ -65,7 +71,7 @@ const getEmbedUrl = (url: string) => {
     }
     
     if (videoId) {
-      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
     }
   } else if (url.includes('vimeo.com')) {
     // Vimeo parser
@@ -94,10 +100,42 @@ interface WorkshopCurriculum {
   attachment?: string;
   duration?: string;
   date?: string;
+  isCompleted?: boolean;
 }
 
 export const WorkshopLMSPage = () => {
   const { workshopId } = useParams<{ workshopId: string }>();
+
+  // Fullscreen logic
+  const playerContainerRef = React.useRef<HTMLDivElement>(null);
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      playerContainerRef.current.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
 
   // Queries
   const { data: workshopRes, isLoading: workshopLoading } = useWorkshop(workshopId || '');
@@ -107,17 +145,28 @@ export const WorkshopLMSPage = () => {
   const rawCurriculums = curriculumsRes?.data?.workshop_curriculum_data;
   const curriculums = React.useMemo(() => rawCurriculums || [], [rawCurriculums]) as WorkshopCurriculum[];
 
+  const { data: progressRes } = useWorkshopProgress(workshopId || '');
+  const progress = progressRes?.data;
+  const completedCount = progress?.completedCount || 0;
+  const totalCount = progress?.totalCount || curriculums.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const completeMutation = useCompleteWorkshopCurriculum();
+
   // Active Video State
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
   const [activeVideoTitle, setActiveVideoTitle] = useState<string | null>(null);
   const [activeVideoDesc, setActiveVideoDesc] = useState<string | null>(null);
   const [activeAttachment, setActiveAttachment] = useState<string | null>(null);
+  const [activeCurriculumId, setActiveCurriculumId] = useState<string | null>(null);
 
   // Compute active video details with first curriculum as fallback
   const currentVideoUrl = activeVideoUrl ?? (curriculums.length > 0 ? curriculums[0].videoLink : null);
   const currentVideoTitle = activeVideoTitle ?? (curriculums.length > 0 ? curriculums[0].title : null);
   const currentVideoDesc = activeVideoDesc ?? (curriculums.length > 0 ? curriculums[0].description : null);
   const currentAttachment = activeAttachment ?? (curriculums.length > 0 ? curriculums[0].attachment : null);
+  const currentCurriculumId = activeCurriculumId ?? (curriculums.length > 0 ? curriculums[0]._id : null);
+  const currentIsCompleted = curriculums.find(c => c._id === currentCurriculumId)?.isCompleted || false;
 
   if (workshopLoading || curriculumsLoading) {
     return <Loader />;
@@ -172,8 +221,12 @@ export const WorkshopLMSPage = () => {
             <div className="space-y-6">
               {/* Video Player */}
               <div 
+                ref={playerContainerRef}
                 className="group relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border dark:border-slate-800 shadow-lg"
                 onContextMenu={(e) => e.preventDefault()}
+                onClick={() => {
+                  if (iframeRef.current) iframeRef.current.focus();
+                }}
               >
                 {getLinkType(currentVideoUrl) === 'external-live' ? (
                   <div className="absolute inset-0 bg-linear-to-br from-card-dark to-slate-950 dark:from-page-dark dark:to-slate-950 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
@@ -215,6 +268,7 @@ export const WorkshopLMSPage = () => {
                 ) : getLinkType(currentVideoUrl) === 'youtube' || getLinkType(currentVideoUrl) === 'vimeo' || getLinkType(currentVideoUrl) === 'twitch' ? (
                   <>
                     <iframe
+                      ref={iframeRef}
                       src={getEmbedUrl(currentVideoUrl || '')}
                       title={currentVideoTitle || 'Workshop video'}
                       className="absolute inset-0 w-full h-full"
@@ -242,9 +296,19 @@ export const WorkshopLMSPage = () => {
                       </div>
                     </div>
                     
-                    {/* Invisible pointer-events overlays to capture any remaining clicks in those areas */}
+                    {/* Invisible pointer-events overlays to capture clicks in key redirect regions */}
                     <div className="absolute top-0 left-0 right-0 h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
-                    <div className="absolute bottom-0 right-0 w-[26%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                    <div className="absolute bottom-0 left-0 w-[20%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                    <div className="absolute bottom-0 right-0 w-[38%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+
+                    {/* Custom Fullscreen Toggle Button */}
+                    <button
+                      onClick={toggleFullscreen}
+                      className="absolute bottom-2 left-14 z-20 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm border border-white/20 shadow-lg cursor-pointer transition-colors"
+                      title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                    >
+                      {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    </button>
                   </>
                 ) : (
                   <video
@@ -288,6 +352,42 @@ export const WorkshopLMSPage = () => {
                     </a>
                   </div>
                 )}
+
+                {/* Mark as Completed Button */}
+                {currentCurriculumId && (
+                  <div className="flex items-center justify-between">
+                    {currentIsCompleted ? (
+                      <span className="flex items-center gap-2 text-sm font-bold text-emerald-500">
+                        <CheckCircle2 size={18} /> Completed
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (workshopId && currentCurriculumId) {
+                            completeMutation.mutate({
+                              workshopId,
+                              workshopCurriculumId: currentCurriculumId,
+                            });
+                          }
+                        }}
+                        disabled={completeMutation.isPending}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-brand-primary/10 active:scale-[0.97] disabled:opacity-75"
+                      >
+                        {completeMutation.isPending ? (
+                          <>
+                            <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                            Marking...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={15} />
+                            Mark as Completed
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -303,9 +403,25 @@ export const WorkshopLMSPage = () => {
 
         {/* Right Column: Workshop Curriculum List */}
         <div className="lg:col-span-1 space-y-4">
-          <h3 className="font-display font-extrabold text-lg text-slate-900 dark:text-white">
-            Workshop Lectures ({curriculums.length})
-          </h3>
+          <div className="space-y-2">
+            <h3 className="font-display font-extrabold text-lg text-slate-900 dark:text-white">
+              Workshop Lectures ({curriculums.length})
+            </h3>
+            {totalCount > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[11px] font-bold text-slate-500">
+                  <span>Progress</span>
+                  <span className="text-brand-secondary">{completedCount}/{totalCount}</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-brand-primary to-orange-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
           
           <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
             {curriculums.length > 0 ? (
@@ -319,6 +435,7 @@ export const WorkshopLMSPage = () => {
                       setActiveVideoTitle(curr.title);
                       setActiveVideoDesc(curr.description);
                       setActiveAttachment(curr.attachment || null);
+                      setActiveCurriculumId(curr._id);
                     }}
                     whileHover={{ x: 2 }}
                     className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left transition-all ${
@@ -327,8 +444,8 @@ export const WorkshopLMSPage = () => {
                         : 'bg-white dark:bg-card-dark border-slate-100 dark:border-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                     }`}
                   >
-                    <div className={`p-2.5 rounded-xl shrink-0 ${isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 dark:bg-slate-900'}`}>
-                      <Play size={14} className="fill-current" />
+                    <div className={`p-2.5 rounded-xl shrink-0 ${curr.isCompleted ? 'bg-emerald-500 text-white' : isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 dark:bg-slate-900'}`}>
+                      {curr.isCompleted ? <CheckCircle2 size={14} /> : <Play size={14} className="fill-current" />}
                     </div>
                     
                     <div className="min-w-0 space-y-1">
