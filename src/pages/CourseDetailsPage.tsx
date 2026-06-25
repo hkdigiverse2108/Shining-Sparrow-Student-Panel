@@ -11,9 +11,10 @@ import { loadRazorpayScript } from '../utils/razorpay';
 import { 
   handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE 
 } from '../utils/fallbacks';
-import { ArrowRight, Play, BookOpen, FileText, Award, Clock, Calendar, Check, ShieldCheck, Zap, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowRight, Play, BookOpen, FileText, Award, Clock, Calendar, Check, ShieldCheck, Zap, Maximize2, Minimize2, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+import { useValidateCoupon } from '../hooks/useCoupons';
 
 interface Lesson {
   _id: string;
@@ -177,6 +178,10 @@ export const CourseDetailsPage = () => {
     ? enrolledWorkshops.some((ew: EnrolledWorkshop) => ew.workshopId?._id === id)
     : enrolledCourses.some((ec: EnrolledCourse) => ec.courseId?._id === id);
 
+  // Workshop progress from API
+  const { data: workshopProgressRes } = useWorkshopProgress(isWorkshop && isPurchased ? id || '' : '');
+  const workshopProgress = workshopProgressRes?.data;
+
 
   // Mutations
   const purchaseCourseMutation = usePurchaseCourse();
@@ -184,6 +189,58 @@ export const CourseDetailsPage = () => {
 
   // Local state
   const [purchasing, setPurchasing] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+
+  // Coupon local states
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [payablePrice, setPayablePrice] = useState<number | null>(null);
+  const [couponError, setCouponError] = useState('');
+
+  const validateCouponMutation = useValidateCoupon();
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setCouponError('');
+    validateCouponMutation.mutate(
+      {
+        code: couponCode.trim().toUpperCase(),
+        amount: price,
+        appliesToId: id || undefined,
+      },
+      {
+        onSuccess: (res) => {
+          if (res.data) {
+            setAppliedCoupon(res.data.coupon);
+            setDiscountAmount(res.data.discountAmount);
+            setPayablePrice(res.data.finalAmount);
+            showToast('Coupon code applied successfully! 🎉', 'success');
+          } else {
+            setCouponError('Invalid coupon response.');
+          }
+        },
+        onError: (err: any) => {
+          const errMsg = err.response?.data?.message || 'Invalid or expired coupon code.';
+          setCouponError(errMsg);
+          showToast(errMsg, 'error');
+        },
+      }
+    );
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setPayablePrice(null);
+    setCouponCode('');
+    setCouponError('');
+    showToast('Coupon code removed.', 'info');
+  };
 
   // Review form states
   const [reviewName, setReviewName] = useState(student?.fullName || '');
@@ -252,10 +309,6 @@ export const CourseDetailsPage = () => {
     ? enrolledWorkshops.find((ew: EnrolledWorkshop) => ew.workshopId?._id === id)
     : enrolledCourses.find((ec: EnrolledCourse) => ec.courseId?._id === id);
 
-  // Workshop progress from API
-  const { data: workshopProgressRes } = useWorkshopProgress(isWorkshop && isPurchased ? id || '' : '');
-  const workshopProgress = workshopProgressRes?.data;
-
   const completedLessons = isWorkshop
     ? (workshopProgress?.completedCount || 0)
     : (currentEnrollment ? (currentEnrollment as any).completedLessons || 0 : 0);
@@ -268,6 +321,37 @@ export const CourseDetailsPage = () => {
     if (!isAuthenticated) {
       showToast('Please login to purchase this program.', 'warning');
       navigate('/login');
+      return;
+    }
+
+    const finalPayable = payablePrice !== null ? payablePrice : price;
+
+    if (finalPayable === 0) {
+      setPurchasing(true);
+      try {
+        if (isWorkshop) {
+          await purchaseWorkshopMutation.mutateAsync({
+            workshop_id: item._id,
+            amount: price,
+            payment_id: `FREE_COUPON_${appliedCoupon?.code || 'OFFER'}`,
+            final_amount: 0,
+            payment_method: 'coupon',
+          });
+        } else {
+          await purchaseCourseMutation.mutateAsync({
+            courseId: item._id,
+            razorpayOrderId: 'FREE_ORDER_' + Math.random().toString(36).substring(2, 9),
+            razorpayPaymentId: `FREE_COUPON_${appliedCoupon?.code || 'OFFER'}`,
+          });
+        }
+        showToast('Enrollment successful!', 'success');
+        navigate('/dashboard');
+      } catch (err) {
+        const error = err as { response?: { data?: { message?: string } } };
+        showToast(error.response?.data?.message || 'Enrollment failed. Contact support.', 'error');
+      } finally {
+        setPurchasing(false);
+      }
       return;
     }
 
@@ -284,7 +368,7 @@ export const CourseDetailsPage = () => {
 
       const options = {
         key: razorpayKey,
-        amount: price * 100,
+        amount: finalPayable * 100,
         currency: 'INR',
         name: 'Shining-Sparrow',
         description: `Enroll in ${name}`,
@@ -295,7 +379,8 @@ export const CourseDetailsPage = () => {
                 workshop_id: item._id,
                 amount: price,
                 payment_id: response.razorpay_payment_id,
-                final_amount: price,
+                final_amount: finalPayable,
+                payment_method: 'razorpay',
               });
             } else {
               await purchaseCourseMutation.mutateAsync({
@@ -329,6 +414,15 @@ export const CourseDetailsPage = () => {
     } finally {
       setPurchasing(false);
     }
+  };
+
+  const handleOpenCheckout = () => {
+    if (!isAuthenticated) {
+      showToast('Please login to purchase this program.', 'warning');
+      navigate('/login');
+      return;
+    }
+    setShowCheckoutModal(true);
   };
 
 
@@ -1115,7 +1209,7 @@ export const CourseDetailsPage = () => {
                     </Link>
                   ) : isPurchased && isAccessExpired ? (
                     <button
-                      onClick={handleCheckout}
+                      onClick={handleOpenCheckout}
                       disabled={purchasing}
                       className="w-full py-4 sm:py-4.5 text-sm font-black flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-500 text-white rounded-2xl shadow-xl shadow-red-500/25 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
                     >
@@ -1124,7 +1218,7 @@ export const CourseDetailsPage = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={handleCheckout}
+                      onClick={handleOpenCheckout}
                       disabled={purchasing}
                       className="w-full py-4 sm:py-4.5 text-sm font-black flex items-center justify-center gap-2.5 bg-gradient-to-r from-brand-primary to-orange-600 hover:from-orange-600 hover:to-brand-primary text-white rounded-2xl shadow-xl shadow-brand-primary/30 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
                     >
@@ -1226,6 +1320,147 @@ export const CourseDetailsPage = () => {
                 >
                   {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Checkout Summary & Coupon Modal */}
+      <AnimatePresence>
+        {showCheckoutModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setShowCheckoutModal(false);
+                  handleRemoveCoupon();
+                }}
+                className="absolute top-4 right-4 z-30 w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer text-xs font-bold"
+              >
+                ✕
+              </button>
+
+              <div className="p-6 space-y-6">
+                <div className="border-b dark:border-slate-800 pb-3">
+                  <h3 className="font-display font-black text-lg text-slate-800 dark:text-white">
+                    Checkout Summary
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Review your order and apply any promotional codes.
+                  </p>
+                </div>
+
+                {/* Product Metadata Info */}
+                <div className="flex gap-4 p-3 bg-slate-55 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-850 rounded-2xl">
+                  <img
+                    src={getImageUrl(item.image) || (isWorkshop ? FALLBACK_WORKSHOP_IMAGE : FALLBACK_COURSE_IMAGE)}
+                    alt={name}
+                    className="w-14 h-14 object-cover rounded-xl shrink-0"
+                    onError={(e) => handleImageError(e, isWorkshop ? FALLBACK_WORKSHOP_IMAGE : FALLBACK_COURSE_IMAGE)}
+                  />
+                  <div className="min-w-0 flex flex-col justify-center">
+                    <p className="text-xs font-black text-slate-800 dark:text-white line-clamp-2 leading-snug">
+                      {name}
+                    </p>
+                    <span className="text-[9px] text-brand-primary font-black uppercase tracking-[0.1em] mt-1.5 block">
+                      {isWorkshop ? '🎥 Live Workshop Stream' : '📚 Self-Paced Program'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Coupon Code section */}
+                <div className="space-y-2">
+                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.1em] block">Have a Coupon Code?</span>
+                  
+                  {!appliedCoupon ? (
+                    <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="ENTER PROMO CODE"
+                        className="grow px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-brand-primary transition-colors text-slate-800 dark:text-white"
+                      />
+                      <button
+                        type="submit"
+                        disabled={validateCouponMutation.isPending}
+                        className="px-5 py-2.5 bg-slate-800 hover:bg-slate-950 dark:bg-brand-primary dark:hover:bg-brand-primary/95 text-white text-xs font-black rounded-xl cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        {validateCouponMutation.isPending ? '...' : 'Apply'}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between p-3.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/30 dark:border-emerald-900/40 rounded-xl">
+                      <div className="flex items-center gap-2.5">
+                        <Tag size={16} className="text-emerald-500 shrink-0 animate-bounce" />
+                        <div>
+                          <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                            {appliedCoupon.code}
+                          </p>
+                          <p className="text-[10px] text-emerald-500 font-semibold">
+                            Saved ₹{discountAmount.toFixed(2)} ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : 'flat'} off)
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-[10px] text-red-500 hover:text-red-700 font-black tracking-wider hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  
+                  {couponError && (
+                    <p className="text-[10px] text-red-500 font-semibold pl-1">
+                      ⚠️ {couponError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Price Summary Breakdown */}
+                <div className="bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-2xl p-4 space-y-2.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <div className="flex justify-between">
+                    <span>Program Price</span>
+                    <span className="text-slate-800 dark:text-slate-200">₹{price}</span>
+                  </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-emerald-500 font-semibold">
+                      <span>Promo Code Discount</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-slate-200 dark:border-slate-800/60 pt-3 flex justify-between items-baseline font-black text-slate-900 dark:text-white">
+                    <span className="text-sm">Total Payable</span>
+                    <span className="text-2xl text-brand-primary tracking-tight">
+                      ₹{payablePrice !== null ? payablePrice : price}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action button */}
+                <div className="space-y-3 pt-2">
+                  <button
+                    onClick={handleCheckout}
+                    disabled={purchasing}
+                    className="w-full py-4 text-sm font-black flex items-center justify-center gap-2.5 bg-gradient-to-r from-brand-primary to-orange-600 hover:from-orange-600 hover:to-brand-primary text-white rounded-2xl shadow-xl shadow-brand-primary/30 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <span>{purchasing ? 'Processing Order...' : 'Pay & Enroll Now'}</span>
+                    <ArrowRight size={16} />
+                  </button>
+                  <p className="text-[9px] text-slate-400 text-center font-bold uppercase tracking-wider block">
+                    🔒 Secured Checkout & Instant Verification
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
