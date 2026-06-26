@@ -48,7 +48,7 @@ const getEmbedUrl = (url: string) => {
     if (url.includes('youtube.com/embed/')) {
       const separator = url.includes('?') ? '&' : '?';
       if (!url.includes('controls=')) {
-        return `${url}${separator}autoplay=1&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
+        return `${url}${separator}autoplay=1&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
       }
       return url;
     }
@@ -71,7 +71,7 @@ const getEmbedUrl = (url: string) => {
     }
     
     if (videoId) {
-      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
     }
   } else if (url.includes('vimeo.com')) {
     // Vimeo parser

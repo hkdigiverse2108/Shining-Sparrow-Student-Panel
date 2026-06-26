@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { Mail, Phone, User, Landmark, School, Send, Copy, Check, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+import { CelebrationModal } from '../components/CelebrationModal';
 
 const REACH_SOURCES = [
   'Social media',
@@ -51,6 +52,8 @@ export const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [otrCode, setOtrCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [pendingOTR, setPendingOTR] = useState<string | null>(null);
 
   // Autocomplete state
   const [districtsList, setDistrictsList] = useState<string[]>([]);
@@ -110,7 +113,13 @@ export const SignupPage = () => {
       });
 
       if (response && response.status === 200) {
-        setOtrCode(response.data.otr);
+        const hasWelcomed = localStorage.getItem('shining_sparrow_welcomed');
+        if (!hasWelcomed) {
+          setPendingOTR(response.data.otr);
+          setShowWelcome(true);
+        } else {
+          setOtrCode(response.data.otr);
+        }
         showToast('Registration successful! Save your OTR Code.', 'success');
       } else {
         showToast(response.message || 'Signup failed', 'error');
@@ -136,6 +145,15 @@ export const SignupPage = () => {
   const handleModalClose = () => {
     setOtrCode(null);
     navigate('/login');
+  };
+
+  const handleWelcomeClose = () => {
+    localStorage.setItem('shining_sparrow_welcomed', 'true');
+    setShowWelcome(false);
+    if (pendingOTR) {
+      setOtrCode(pendingOTR);
+      setPendingOTR(null);
+    }
   };
 
   return (
@@ -347,6 +365,16 @@ export const SignupPage = () => {
           </Link>
         </div>
       </div>
+
+      {/* WELCOME CELEBRATION MODAL */}
+      <CelebrationModal
+        isOpen={showWelcome}
+        onClose={handleWelcomeClose}
+        title="Welcome to Shining Sparrow!"
+        subtitle="You've joined thousands of learners. Let's begin your journey!"
+        buttonText="Continue"
+        showConfetti={true}
+      />
 
       {/* OTR SUCCESS OVERLAY MODAL */}
       <AnimatePresence>

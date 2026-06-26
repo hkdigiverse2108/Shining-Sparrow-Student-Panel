@@ -78,7 +78,7 @@ const AppLayout = () => {
         (e.ctrlKey && e.shiftKey && (e.key === "s" || e.key === "S")) ||
         (e.ctrlKey && e.shiftKey && (e.key === "PrintScreen" || e.key === "Print"))
       ) {
-        document.body.classList.add("screenshot-protect-blur");
+        // document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
         } catch (err) {}
@@ -127,7 +127,7 @@ const AppLayout = () => {
         e.key === "PrintScreen" ||
         (e.metaKey && e.shiftKey && (e.key === "s" || e.key === "S"))
       ) {
-        document.body.classList.add("screenshot-protect-blur");
+        // document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
         } catch (err) {}
@@ -136,7 +136,7 @@ const AppLayout = () => {
 
     // Protect against screenshots/overlays by blurring when window loses focus and clearing clipboard
     const handleBlur = () => {
-      document.body.classList.add("screenshot-protect-blur");
+      // document.body.classList.add("screenshot-protect-blur");
       try {
         navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
       } catch {}
@@ -148,7 +148,7 @@ const AppLayout = () => {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        document.body.classList.add("screenshot-protect-blur");
+        // document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
         } catch {}

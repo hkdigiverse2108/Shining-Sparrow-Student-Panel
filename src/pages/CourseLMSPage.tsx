@@ -72,12 +72,12 @@ const getEmbedUrl = (url: string) => {
     }
     
     if (videoId) {
-      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
     }
   } else {
     const separator = embedUrl.includes('?') ? '&' : '?';
     if (!embedUrl.includes('controls=')) {
-      embedUrl = `${embedUrl}${separator}autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=1`;
+      embedUrl = `${embedUrl}${separator}autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
     }
   }
   

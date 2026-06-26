@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+import confetti from 'canvas-confetti';
 
 interface Question {
   _id: string;
@@ -136,6 +137,7 @@ export const ExamInterfacePage = () => {
   // Audio Playback states
   const [audioPlaying, setAudioPlaying] = useState<Record<string, boolean>>({});
   const [audioCountdown, setAudioCountdown] = useState<Record<string, number>>({});
+  const [audioPlayed, setAudioPlayed] = useState<Record<string, boolean>>({});
 
   // Audio Playback Ref
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
@@ -184,6 +186,21 @@ export const ExamInterfacePage = () => {
     }
   }, [exam, questions, answers, submitExamMutation, timeTaken, showToast]);
 
+  // Fire confetti when exam is passed
+  useEffect(() => {
+    if (resultData?.status === 'pass') {
+      const duration = 4000;
+      const end = Date.now() + duration;
+      const frame = () => {
+        confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ['#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f97316'] });
+        confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ['#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f97316'] });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+      confetti({ particleCount: 120, spread: 100, origin: { y: 0.55 }, colors: ['#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f97316'] });
+    }
+  }, [resultData]);
+
   // Confirm page exit during active exam
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -217,6 +234,46 @@ export const ExamInterfacePage = () => {
     return () => clearInterval(timer);
   }, [examStarted, examSubmitted, timeRemaining, handleExamSubmit, showToast]);
 
+  const playAudio = (questionId: string) => {
+    if (audioPlaying[questionId] || audioCountdown[questionId] !== undefined || audioPlayed[questionId]) return;
+
+    const audio = audioRefs.current[questionId];
+    if (!audio) return;
+
+    let count = 3;
+    setAudioCountdown(prev => ({ ...prev, [questionId]: count }));
+
+    const timer = setInterval(() => {
+      count--;
+      if (count > 0) {
+        setAudioCountdown(prev => ({ ...prev, [questionId]: count }));
+      } else {
+        clearInterval(timer);
+        setAudioCountdown(prev => {
+          const next = { ...prev };
+          delete next[questionId];
+          return next;
+        });
+        audio.currentTime = 0;
+        setAudioPlayed(prev => ({ ...prev, [questionId]: true }));
+        audio.play().catch(err => {
+          console.error('Audio playback failed', err);
+          showToast('Playback failed. Please contact support.', 'error');
+        });
+      }
+    }, 1000);
+  };
+
+  // Auto-play audio when navigating to an audio question (active exam only)
+  useEffect(() => {
+    if (examStarted && !examSubmitted && currentQuestion?.questionType === 'audio' && currentQuestion?.questionAudio) {
+      const timer = setTimeout(() => {
+        playAudio(currentQuestion._id);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentQuestionIndex, examStarted, examSubmitted]);
+
   if (examLoading) {
     return <Loader />;
   }
@@ -247,34 +304,6 @@ export const ExamInterfacePage = () => {
     }));
   };
 
-  const playAudio = (questionId: string) => {
-    if (audioPlaying[questionId] || audioCountdown[questionId] !== undefined) return;
-
-    const audio = audioRefs.current[questionId];
-    if (!audio) return;
-
-    let count = 3;
-    setAudioCountdown(prev => ({ ...prev, [questionId]: count }));
-
-    const timer = setInterval(() => {
-      count--;
-      if (count > 0) {
-        setAudioCountdown(prev => ({ ...prev, [questionId]: count }));
-      } else {
-        clearInterval(timer);
-        setAudioCountdown(prev => {
-          const next = { ...prev };
-          delete next[questionId];
-          return next;
-        });
-        audio.currentTime = 0;
-        audio.play().catch(err => {
-          console.error('Audio playback failed', err);
-          showToast('Playback failed. Please click play again.', 'error');
-        });
-      }
-    }, 1000);
-  };
 
   // Timer formatter (e.g. 05:00)
   const formatTime = (seconds: number) => {
@@ -537,17 +566,24 @@ export const ExamInterfacePage = () => {
                           />
                           <button
                             type="button"
-                            disabled={audioCountdown[activeQuestion._id] !== undefined || audioPlaying[activeQuestion._id]}
+                            disabled={audioCountdown[activeQuestion._id] !== undefined || audioPlaying[activeQuestion._id] || audioPlayed[activeQuestion._id]}
                             onClick={() => playAudio(activeQuestion._id)}
                             className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-white font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-sm transition-all ${
-                              audioCountdown[activeQuestion._id] !== undefined
+                              audioPlayed[activeQuestion._id]
+                                ? 'bg-slate-400 dark:bg-slate-600 text-white cursor-not-allowed'
+                                : audioCountdown[activeQuestion._id] !== undefined
                                 ? 'bg-amber-500 text-white cursor-not-allowed animate-pulse'
                                 : audioPlaying[activeQuestion._id]
                                 ? 'bg-emerald-600 text-white cursor-not-allowed'
                                 : 'bg-brand-primary hover:bg-brand-primary/90 cursor-pointer'
                             }`}
                           >
-                            {audioCountdown[activeQuestion._id] !== undefined ? (
+                            {audioPlayed[activeQuestion._id] ? (
+                              <>
+                                <CheckCircle2 size={10} />
+                                <span>Played</span>
+                              </>
+                            ) : audioCountdown[activeQuestion._id] !== undefined ? (
                               <>
                                 <Clock size={10} className="animate-spin" />
                                 <span>Starting...</span>
@@ -852,17 +888,24 @@ export const ExamInterfacePage = () => {
                   />
 
                   <button
-                    disabled={audioCountdown[currentQuestion._id] !== undefined || audioPlaying[currentQuestion._id]}
+                    disabled={audioCountdown[currentQuestion._id] !== undefined || audioPlaying[currentQuestion._id] || audioPlayed[currentQuestion._id]}
                     onClick={() => playAudio(currentQuestion._id)}
                     className={`px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all ${
-                      audioCountdown[currentQuestion._id] !== undefined
+                      audioPlayed[currentQuestion._id]
+                        ? 'bg-slate-400 dark:bg-slate-600 text-white cursor-not-allowed'
+                        : audioCountdown[currentQuestion._id] !== undefined
                         ? 'bg-amber-500 text-white cursor-not-allowed animate-pulse'
                         : audioPlaying[currentQuestion._id]
                         ? 'bg-emerald-600 text-white cursor-not-allowed'
                         : 'bg-brand-primary hover:bg-brand-primary/90 cursor-pointer'
                     }`}
                   >
-                    {audioCountdown[currentQuestion._id] !== undefined ? (
+                    {audioPlayed[currentQuestion._id] ? (
+                      <>
+                        <CheckCircle2 size={12} />
+                        <span>Played</span>
+                      </>
+                    ) : audioCountdown[currentQuestion._id] !== undefined ? (
                       <>
                         <Clock size={12} className="animate-spin" />
                         <span>Starting...</span>
