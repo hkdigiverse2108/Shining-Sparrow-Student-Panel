@@ -337,14 +337,26 @@ export const Dashboard = () => {
 
   // Render vertical indicator lines for checklists (matches the checklist design in UI)
   const renderVisualChecklist = (completed: number, total: number) => {
+    // Optimization: If total items is large, render a continuous progress bar to avoid hundreds of DOM nodes
+    if (total > 15) {
+      const pct = total > 0 ? Math.min(Math.round((completed / total) * 100), 100) : 0;
+      return (
+        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden relative mt-1">
+          <div 
+            style={{ width: `${pct}%` }} 
+            className="bg-brand-primary h-full rounded-full transition-all duration-305 shadow-[0_0_6px_rgba(232,100,36,0.4)]"
+          />
+        </div>
+      );
+    }
     const items = [];
     for (let i = 0; i < total; i++) {
       items.push(
         <span 
           key={i} 
-          className={`w-1.5 h-3.5 rounded-sm inline-block mx-0.5 transition-all ${
+          className={`w-1.5 h-3.5 rounded-sm inline-block mx-0.5 transition-colors duration-150 ${
             i < completed 
-              ? 'bg-brand-primary dark:bg-brand-primary shadow-[0_0_6px_rgba(232,100,36,0.5)]' 
+              ? 'bg-brand-primary dark:bg-brand-primary shadow-[0_0_6px_rgba(232,100,36,0.4)]' 
               : 'bg-slate-200 dark:bg-slate-700'
           }`}
         />

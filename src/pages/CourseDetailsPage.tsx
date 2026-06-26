@@ -336,12 +336,17 @@ export const CourseDetailsPage = () => {
             payment_id: `FREE_COUPON_${appliedCoupon?.code || 'OFFER'}`,
             final_amount: 0,
             payment_method: 'coupon',
+            couponCodeId: appliedCoupon?._id || undefined,
+            discountAmount: discountAmount,
           });
         } else {
           await purchaseCourseMutation.mutateAsync({
             courseId: item._id,
             razorpayOrderId: 'FREE_ORDER_' + Math.random().toString(36).substring(2, 9),
             razorpayPaymentId: `FREE_COUPON_${appliedCoupon?.code || 'OFFER'}`,
+            couponCodeId: appliedCoupon?._id || undefined,
+            discountAmount: discountAmount,
+            finalAmount: 0,
           });
         }
         showToast('Enrollment successful!', 'success');
@@ -381,12 +386,17 @@ export const CourseDetailsPage = () => {
                 payment_id: response.razorpay_payment_id,
                 final_amount: finalPayable,
                 payment_method: 'razorpay',
+                couponCodeId: appliedCoupon?._id || undefined,
+                discountAmount: discountAmount,
               });
             } else {
               await purchaseCourseMutation.mutateAsync({
                 courseId: item._id,
                 razorpayOrderId: response.razorpay_order_id || 'ORDER_' + Math.random().toString(36).substring(2, 9),
                 razorpayPaymentId: response.razorpay_payment_id,
+                couponCodeId: appliedCoupon?._id || undefined,
+                discountAmount: discountAmount,
+                finalAmount: finalPayable,
               });
             }
             showToast('Enrollment successful!', 'success');

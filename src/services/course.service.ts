@@ -4,6 +4,9 @@ export interface PurchaseCoursePayload {
   courseId: string;
   razorpayOrderId: string;
   razorpayPaymentId: string;
+  couponCodeId?: string;
+  discountAmount?: number;
+  finalAmount?: number;
 }
 
 const courseService = {

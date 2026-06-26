@@ -359,3 +359,24 @@ body {
   max-width: 100% !important;
 }
 
+/* Screenshot & Text Copy Protection */
+body {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* Hide content during printing */
+@media print {
+  body {
+    display: none !important;
+  }
+}
+
+/* Blur protection when page is blurred (e.g. snipping tool active) */
+.screenshot-protect-blur {
+  filter: blur(25px) !important;
+  pointer-events: none !important;
+}
+

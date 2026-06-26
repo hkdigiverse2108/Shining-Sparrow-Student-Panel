@@ -136,6 +136,7 @@ export const CourseLMSPage = () => {
   // Selected Lesson State
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
   
   // UI states
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -862,17 +863,15 @@ export const CourseLMSPage = () => {
                       </div>
                       <div className="space-y-0.5">
                         <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Practice Sheet PDF</span>
-                        <span className="block text-[10px] text-slate-400">Download worksheets for this lesson</span>
+                        <span className="block text-[10px] text-slate-400">View worksheets for this lesson</span>
                       </div>
                     </div>
-                    <a
-                      href={activeLesson.practiceMaterial}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-xl bg-white dark:bg-slate-800 border dark:border-slate-700 text-orange-600 dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-sm"
+                    <button
+                      onClick={() => setPdfViewerUrl(activeLesson.practiceMaterial || null)}
+                      className="p-2 rounded-xl bg-white dark:bg-slate-800 border dark:border-slate-700 text-orange-600 dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-sm cursor-pointer"
                     >
-                      <Download size={16} />
-                    </a>
+                      <Maximize2 size={16} />
+                    </button>
                   </div>
                 )}
               </div>
@@ -1012,6 +1011,65 @@ export const CourseLMSPage = () => {
         </div>
 
       </motion.main>
+
+      {/* Secure PDF Viewer Modal */}
+      <AnimatePresence>
+        {pdfViewerUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setPdfViewerUrl(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden relative shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white leading-tight">Practice Sheet PDF</h3>
+                    <p className="text-[10px] text-slate-400">Secure view-only mode</p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => setPdfViewerUrl(null)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Secure PDF iFrame Container */}
+              <div className="grow bg-slate-950 p-2 relative flex items-center justify-center">
+                {/* Overlay covering iframe controls / protecting right click */}
+                <div 
+                  className="absolute inset-0 bg-transparent z-10"
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+                
+                <iframe
+                  src={`${pdfViewerUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                  title="PDF Document"
+                  className="w-full h-full rounded-2xl border-0 bg-slate-900 z-0"
+                  style={{
+                    colorScheme: 'dark'
+                  }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
