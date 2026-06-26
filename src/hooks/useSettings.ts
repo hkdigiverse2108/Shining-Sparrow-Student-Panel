@@ -47,11 +47,14 @@ export const useContactUs = () => {
 export const useSubmitTestimonial = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { name: string; description: string; rate: number; type: 'workshop' | 'course'; learningCatalogId: string }) =>
+    mutationFn: (payload: { name: string; description: string; rate: number; type: 'workshop' | 'course' | 'home'; learningCatalogId?: string }) =>
       settingsService.submitTestimonial(payload),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['workshop', variables.learningCatalogId] });
-      queryClient.invalidateQueries({ queryKey: ['course', variables.learningCatalogId] });
+      if (variables.learningCatalogId) {
+        queryClient.invalidateQueries({ queryKey: ['workshop', variables.learningCatalogId] });
+        queryClient.invalidateQueries({ queryKey: ['course', variables.learningCatalogId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
     },
   });
 };

@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useMyCourses } from '../hooks/useCourses';
 import { useMyWorkshops } from '../hooks/useWorkshops';
 import { useToast } from '../context/ToastContext';
+import { useSubmitTestimonial } from '../hooks/useSettings';
 import { User, Phone, Landmark, School, Save, Copy, Check, Mail, MapPin, BookOpen, Award, ImagePlus, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
@@ -76,6 +77,43 @@ export const ProfilePage = () => {
   const [reachFrom, setReachFrom] = useState(student?.reachFrom || '');
   const [profileLoading, setProfileLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+
+  // Global feedback/testimonial states
+  const [generalRating, setGeneralRating] = useState(5);
+  const [generalReviewText, setGeneralReviewText] = useState('');
+  const [generalFeedbackSuccess, setGeneralFeedbackSuccess] = useState(false);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const submitTestimonialMutation = useSubmitTestimonial();
+
+  const handleGeneralFeedbackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!generalReviewText.trim()) {
+      showToast('Please enter your review.', 'error');
+      return;
+    }
+    setSubmittingFeedback(true);
+    submitTestimonialMutation.mutate(
+      {
+        name: student?.fullName || 'Student',
+        description: generalReviewText,
+        rate: generalRating,
+        type: 'home',
+        learningCatalogId: undefined as any,
+      },
+      {
+        onSuccess: () => {
+          showToast('Thank you for your feedback! 🌟', 'success');
+          setGeneralReviewText('');
+          setGeneralFeedbackSuccess(true);
+          setSubmittingFeedback(false);
+        },
+        onError: () => {
+          showToast('Failed to submit feedback. Please try again.', 'error');
+          setSubmittingFeedback(false);
+        }
+      }
+    );
+  };
 
   // Autocomplete state
   const [districtsList, setDistrictsList] = useState<string[]>([]);
@@ -586,6 +624,73 @@ export const ProfilePage = () => {
             </div>
           </form>
         </motion.div>
+
+        {/* ═══════════════ GLOBAL FEEDBACK/TESTIMONIAL ═══════════════ */}
+        <div className="ui-card p-6 sm:p-8 mt-8">
+          <div className="border-b dark:border-slate-800 pb-3">
+            <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
+              Share Your Overall Feedback
+            </h3>
+            <p className="text-[11px] text-slate-400">
+              We would love to know about your overall experience with our teachings and platform! Your review may be featured on our homepage.
+            </p>
+          </div>
+
+          {generalFeedbackSuccess ? (
+            <div className="p-4 mt-5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/30 dark:border-emerald-900/40 rounded-2xl text-center text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              🎉 Thank you for sharing your feedback with us!
+            </div>
+          ) : (
+            <form onSubmit={handleGeneralFeedbackSubmit} className="space-y-4 mt-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                    Rating
+                  </label>
+                  <div className="flex items-center gap-1.5 h-11">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setGeneralRating(star)}
+                        className="text-xl transition-all hover:scale-120 cursor-pointer"
+                      >
+                        {star <= generalRating ? (
+                          <span className="text-amber-500">★</span>
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-700">☆</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                  Your Review
+                </label>
+                <textarea
+                  value={generalReviewText}
+                  onChange={(e) => setGeneralReviewText(e.target.value)}
+                  placeholder="Tell us what you think about our platform..."
+                  className="ui-input py-3 min-h-[100px]"
+                  required
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={submittingFeedback}
+                  className="ui-button-primary px-8 py-3.5 text-sm gap-2"
+                >
+                  {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
 
       </motion.div>
     </div>

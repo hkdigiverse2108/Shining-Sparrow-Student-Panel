@@ -44,7 +44,7 @@ const settingsService = {
     return response.data;
   },
 
-  submitTestimonial: async (payload: { name: string; description: string; rate: number; type: 'workshop' | 'course'; learningCatalogId: string }) => {
+  submitTestimonial: async (payload: { name: string; description: string; rate: number; type: 'workshop' | 'course' | 'home'; learningCatalogId?: string }) => {
     const response = await client.post('/testimonial/add', payload);
     return response.data;
   },

@@ -158,8 +158,8 @@ export const CourseDetailsPage = () => {
 
   // Queries
   const { data: settingsData } = useSettings();
-  const { data: courseData, isLoading: courseLoading } = useCourse(id || '');
-  const { data: workshopData, isLoading: workshopLoading } = useWorkshop(id || '');
+  const { data: courseData, isLoading: courseLoading } = useCourse(isWorkshop ? '' : id || '');
+  const { data: workshopData, isLoading: workshopLoading } = useWorkshop(isWorkshop ? id || '' : '');
   const { data: faqsRes } = useFAQs({
     learningCatalogFilter: id || '',
     type: isWorkshop ? 'workshop' : 'course',
@@ -260,7 +260,7 @@ export const CourseDetailsPage = () => {
         name: reviewName,
         description: reviewText,
         rate: reviewRating,
-        type: 'workshop',
+        type: isWorkshop ? 'workshop' : 'course',
         learningCatalogId: id || '',
       },
       {
@@ -742,14 +742,15 @@ export const CourseDetailsPage = () => {
                 {/* TAB 3: FAQS & REVIEWS */}
                 {activeTab === 'faqs' && (
                   <div className="space-y-8">
-                    {/* Database-backed Testimonials / Reviews (only shown for workshops) */}
-                    {isWorkshop && item.workshopTestimonials && item.workshopTestimonials.length > 0 && (
+                    {/* Database-backed Testimonials / Reviews (shown for workshops and courses) */}
+                    {((isWorkshop && item?.workshopTestimonials && item?.workshopTestimonials?.length > 0) ||
+                      (!isWorkshop && item?.courseTestimonials && item?.courseTestimonials?.length > 0)) && (
                       <div className="space-y-4">
                         <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
                           What Students Say
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {item.workshopTestimonials.map((t: WorkshopTestimonial) => (
+                          {(isWorkshop ? item.workshopTestimonials : item.courseTestimonials || []).map((t: WorkshopTestimonial) => (
                             <div 
                               key={t._id} 
                               className="bg-white dark:bg-card-dark border border-orange-100/30 dark:border-slate-800/50 rounded-2xl p-4.5 space-y-3 hover:shadow-sm transition-shadow"
@@ -785,14 +786,14 @@ export const CourseDetailsPage = () => {
                       </div>
                     )}
                     {/* Review submission form */}
-                    {isWorkshop && isAuthenticated && isPurchased && (
+                    {isAuthenticated && isPurchased && (
                       <div className="ui-card space-y-5">
                         <div className="border-b dark:border-slate-800 pb-3">
                           <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-white">
                             Share Your Experience
                           </h3>
                           <p className="text-[11px] text-slate-400">
-                            Since you've enrolled in this workshop, we would love to hear your feedback!
+                            Since you've enrolled in this {isWorkshop ? 'workshop' : 'course'}, we would love to hear your feedback!
                           </p>
                         </div>
 
