@@ -68,8 +68,8 @@ export interface LocalizedText {
 }
 
 export interface FAQ {
-  question: any;
-  answer: any;
+  question: string | Record<string, string>;
+  answer: string | Record<string, string>;
 }
 
 interface RazorpayResponse {
@@ -913,8 +913,8 @@ export const CourseDetailsPage = () => {
                           
                           <div className="space-y-3">
                             {faqsList.map((faq: FAQ, idx: number) => {
-                              const questionText = faq.question?.[faqLanguage] || faq.question?.en || faq.question || '';
-                              const answerText = faq.answer?.[faqLanguage] || faq.answer?.en || faq.answer || '';
+                              const questionText = typeof faq.question === 'string' ? faq.question : (faq.question?.[faqLanguage] || faq.question?.en || '');
+                              const answerText = typeof faq.answer === 'string' ? faq.answer : (faq.answer?.[faqLanguage] || faq.answer?.en || '');
                               
                               if (!questionText && !answerText) return null;
 

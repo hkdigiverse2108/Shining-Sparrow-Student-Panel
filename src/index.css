@@ -365,12 +365,24 @@ body {
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  touch-callout: none !important;
+}
+
+/* Prevent dragging of images, videos, and canvas */
+img, video, canvas {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  -webkit-touch-callout: none !important;
 }
 
 /* Hide content during printing */
 @media print {
-  body {
+  body, body * {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
   }
 }
 
@@ -378,5 +390,6 @@ body {
 .screenshot-protect-blur {
   filter: blur(25px) !important;
   pointer-events: none !important;
+  overflow: hidden !important;
 }
 

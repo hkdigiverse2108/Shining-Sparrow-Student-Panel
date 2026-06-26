@@ -45,13 +45,34 @@ const AppLayout = () => {
       e.preventDefault();
     };
 
-    // Disable print, inspect element and page source shortcuts
+    const handleCut = (e: ClipboardEvent) => {
+      e.clipboardData?.setData("text/plain", "Cutting content is disabled on Shining Sparrow.");
+      e.preventDefault();
+    };
+
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+
+    // Prevent dragging content out of the page
+    const handleDragStart = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    // Prevent text selection start
+    const handleSelectStart = (e: Event) => {
+      e.preventDefault();
+    };
+
+    // Disable print, inspect element, page source, and all screenshot shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       // Intercept PrintScreen and OS-level screenshot shortcuts
       if (
         e.key === "PrintScreen" ||
         (e.metaKey && e.shiftKey && (e.key === "s" || e.key === "S")) ||
-        (e.metaKey && e.shiftKey && (e.key === "4" || e.key === "3"))
+        (e.metaKey && e.shiftKey && (e.key === "4" || e.key === "3" || e.key === "5")) ||
+        (e.ctrlKey && e.shiftKey && (e.key === "s" || e.key === "S")) ||
+        (e.ctrlKey && e.shiftKey && (e.key === "PrintScreen" || e.key === "Print"))
       ) {
         document.body.classList.add("screenshot-protect-blur");
         try {
@@ -61,21 +82,39 @@ const AppLayout = () => {
         return false;
       }
 
+      // Block DevTools and inspector shortcuts
       if (
         e.key === "F12" ||
+        e.key === "F5" ||
         (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
         (e.ctrlKey && e.key === "u") ||
+        (e.ctrlKey && e.shiftKey && (e.key === "K" || e.key === "k")) ||
+        (e.ctrlKey && e.shiftKey && (e.key === "P" || e.key === "p")) ||
         (e.metaKey && e.altKey && e.key === "i")
       ) {
         e.preventDefault();
         return false;
       }
+
+      // Block Save, Print, and other extraction shortcuts
       if (
         (e.ctrlKey && (e.key === "s" || e.key === "p")) ||
         (e.metaKey && (e.key === "s" || e.key === "p"))
       ) {
         e.preventDefault();
         return false;
+      }
+
+      // Block Ctrl+A / Cmd+A only when not focused on an input field
+      if (
+        (e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A")
+      ) {
+        const target = e.target as HTMLElement;
+        const isInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+        if (!isInput) {
+          e.preventDefault();
+          return false;
+        }
       }
     };
 
@@ -116,6 +155,10 @@ const AppLayout = () => {
 
     window.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("copy", handleCopy);
+    window.addEventListener("cut", handleCut);
+    window.addEventListener("paste", handlePaste);
+    window.addEventListener("dragstart", handleDragStart);
+    window.addEventListener("selectstart", handleSelectStart);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("blur", handleBlur);
@@ -125,6 +168,10 @@ const AppLayout = () => {
     return () => {
       window.removeEventListener("contextmenu", handleContextMenu);
       window.removeEventListener("copy", handleCopy);
+      window.removeEventListener("cut", handleCut);
+      window.removeEventListener("paste", handlePaste);
+      window.removeEventListener("dragstart", handleDragStart);
+      window.removeEventListener("selectstart", handleSelectStart);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
@@ -133,7 +180,6 @@ const AppLayout = () => {
     };
   }, []);
   
-  // Hide header and footer in assessment mode
   const isExamActive = location.pathname.startsWith('/exam/');
 
   if (isLoading) {
