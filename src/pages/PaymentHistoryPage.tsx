@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import { CreditCard, Calendar, Receipt, TrendingUp, CheckCircle, Clock, AlertTriangle, Download } from 'lucide-react';
 import { FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, handleImageError } from '../utils/fallbacks';
+import { generateInvoiceHTML } from '../utils/invoiceTemplate';
 
 interface PaymentRecord {
   _id: string;
@@ -15,6 +16,8 @@ interface PaymentRecord {
   paymentId: string;
   orderId: string;
   amount: number;
+  finalAmount: number;
+  discountAmount: number;
   status: string;
   date: string;
 }
@@ -30,232 +33,20 @@ export const PaymentHistoryPage = () => {
       return;
     }
 
-    const invoiceDate = new Date(record.date).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+    const htmlContent = generateInvoiceHTML({
+      type: record.type,
+      productName: record.name,
+      studentName: student?.fullName || 'N/A',
+      studentEmail: student?.email || 'N/A',
+      studentPhone: student?.phoneNumber || 'N/A',
+      orderId: record.orderId,
+      paymentId: record.paymentId,
+      originalPrice: record.amount,
+      discountAmount: record.discountAmount || 0,
+      finalAmount: record.finalAmount || record.amount,
+      status: record.status,
+      date: record.date,
     });
-
-    const studentName = student?.fullName || 'N/A';
-    const studentEmail = student?.email || 'N/A';
-    const studentPhone = student?.phoneNumber || 'N/A';
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Invoice - ${record.orderId}</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-            margin: 0;
-            padding: 40px;
-            background-color: #fff;
-          }
-          .invoice-container {
-            max-width: 800px;
-            margin: 0 auto;
-            border: 1px solid #e2e8f0;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-          }
-          .header-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 40px;
-          }
-          .logo-area {
-            font-size: 28px;
-            font-weight: 800;
-            color: #f97316;
-            letter-spacing: -0.5px;
-          }
-          .logo-sub {
-            font-size: 12px;
-            color: #64748b;
-            font-weight: 500;
-          }
-          .invoice-title {
-            text-align: right;
-            font-size: 32px;
-            font-weight: 900;
-            color: #0f172a;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-          }
-          .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-          }
-          .info-col {
-            width: 50%;
-            vertical-align: top;
-          }
-          .section-title {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #94a3b8;
-            margin-bottom: 10px;
-          }
-          .details-text {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #334155;
-          }
-          .details-text strong {
-            color: #0f172a;
-          }
-          .item-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 30px;
-            margin-bottom: 40px;
-          }
-          .item-table th {
-            background-color: #f8fafc;
-            border-bottom: 2px solid #e2e8f0;
-            color: #475569;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 12px 16px;
-            text-align: left;
-          }
-          .item-table td {
-            padding: 16px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 14px;
-            color: #334155;
-          }
-          .item-table .text-right {
-            text-align: right;
-          }
-          .summary-table {
-            width: 350px;
-            margin-left: auto;
-            border-collapse: collapse;
-          }
-          .summary-table td {
-            padding: 8px 16px;
-            font-size: 14px;
-            color: #475569;
-          }
-          .summary-table tr.total-row td {
-            font-size: 18px;
-            font-weight: 800;
-            color: #0f172a;
-            border-top: 2px solid #e2e8f0;
-            padding-top: 12px;
-          }
-          .footer {
-            margin-top: 60px;
-            border-top: 1px solid #f1f5f9;
-            padding-top: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-            font-weight: 500;
-          }
-          @media print {
-            body {
-              padding: 0;
-            }
-            .invoice-container {
-              border: none;
-              box-shadow: none;
-              padding: 0;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="invoice-container">
-          <table class="header-table">
-            <tr>
-              <td>
-                <div class="logo-area">Shining Sparrow</div>
-                <div class="logo-sub">Online Learning Platform</div>
-              </td>
-              <td class="invoice-title">Invoice</td>
-            </tr>
-          </table>
-
-          <table class="info-table">
-            <tr>
-              <td class="info-col">
-                <div class="section-title">Billed To</div>
-                <div class="details-text">
-                  <strong>${studentName}</strong><br>
-                  Email: ${studentEmail}<br>
-                  Phone: ${studentPhone}
-                </div>
-              </td>
-              <td class="info-col" style="text-align: right;">
-                <div class="section-title">Invoice Details</div>
-                <div class="details-text">
-                  <strong>Invoice No:</strong> INV-${record.orderId.replace('order_', '')}<br>
-                  <strong>Date:</strong> ${invoiceDate}<br>
-                  <strong>Payment ID:</strong> ${record.paymentId}<br>
-                  <strong>Status:</strong> ${record.status.toUpperCase()}
-                </div>
-              </td>
-            </tr>
-          </table>
-
-          <table class="item-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Type</th>
-                <th class="text-right">Price</th>
-                <th class="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="font-weight: 600; color: #0f172a;">${record.name}</td>
-                <td><span style="text-transform: capitalize;">${record.type}</span> Enrollment</td>
-                <td class="text-right">₹${record.amount.toLocaleString('en-IN')}</td>
-                <td class="text-right" style="font-weight: 600;">₹${record.amount.toLocaleString('en-IN')}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <table class="summary-table">
-            <tr>
-              <td>Subtotal:</td>
-              <td class="text-right">₹${record.amount.toLocaleString('en-IN')}</td>
-            </tr>
-            <tr>
-              <td>Tax (GST 0%):</td>
-              <td class="text-right">₹0.00</td>
-            </tr>
-            <tr class="total-row">
-              <td>Total Paid:</td>
-              <td class="text-right">₹${record.amount.toLocaleString('en-IN')}</td>
-            </tr>
-          </table>
-
-          <div class="footer">
-            Thank you for learning with Shining Sparrow!<br>
-            For any queries, contact support@shiningsparrow.com or visit www.shiningsparrow.com
-          </div>
-        </div>
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-          }
-        </script>
-      </body>
-      </html>
-    `;
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
@@ -414,9 +205,16 @@ export const PaymentHistoryPage = () => {
 
                   <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
                     {/* Price */}
-                    <span className="font-display font-black text-base text-slate-900 dark:text-white">
-                      ₹{record.amount.toLocaleString('en-IN')}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      {(record.discountAmount || 0) > 0 && (
+                        <span className="text-[10px] text-slate-400 line-through font-semibold">
+                          ₹{record.amount.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                      <span className="font-display font-black text-base text-slate-900 dark:text-white">
+                        ₹{(record.finalAmount || record.amount).toLocaleString('en-IN')}
+                      </span>
+                    </div>
                     
                     {/* Status & Date */}
                     <div className="flex items-center gap-2.5">

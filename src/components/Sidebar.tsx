@@ -136,9 +136,9 @@ export const Sidebar = () => {
 
 
   const renderSidebarContent = (collapsed = false) => (
-    <div className={`flex flex-col h-full justify-between transition-all duration-300 ${collapsed ? 'px-3 py-6' : 'p-6'}`}>
-      {/* Top Section: Brand & Navigation */}
-      <div className="space-y-8">
+    <div className={`flex flex-col h-full transition-all duration-300 ${collapsed ? 'px-3 py-6' : 'p-6'}`}>
+      {/* Top Section: Brand & Navigation — scrollable */}
+      <div className="flex flex-col min-h-0 flex-1 space-y-8">
         {/* Brand/Logo Header */}
         <div className={`flex items-center transition-all duration-300 ${collapsed ? 'justify-center' : 'px-2'}`}>
           {collapsed ? (
@@ -157,7 +157,7 @@ export const Sidebar = () => {
         </div>
 
         {/* Navigation list */}
-        <nav className="space-y-2">
+        <nav className="space-y-2 overflow-y-auto flex-1 min-h-0">
           {menuItems.map((item) => {
             const active = isActive(item.path, item.search);
             const Icon = item.icon;
@@ -217,8 +217,8 @@ export const Sidebar = () => {
         </nav>
       </div>
 
-      {/* Bottom Section: Profile card, theme toggler, log out */}
-      <div className={`space-y-5 pt-6 border-t border-orange-100/60 dark:border-slate-800/40 ${collapsed ? 'flex flex-col items-center' : ''}`}>
+      {/* Bottom Section: Profile card, theme toggler, log out — pinned at bottom */}
+      <div className={`shrink-0 space-y-5 pt-6 border-t border-orange-100/60 dark:border-slate-800/40 ${collapsed ? 'flex flex-col items-center' : ''}`}>
         
         {/* Student Mini Profile Info */}
         {collapsed ? (
