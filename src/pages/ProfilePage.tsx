@@ -33,7 +33,9 @@ const cardItemVariants = {
 };
 
 const REACH_SOURCES = [
-  'Social media',
+  'Instagram',
+  'Facebook',
+  'LinkedIn',
   'Friends/relatives',
   'Webinars',
   'Offline branch visit',
@@ -53,6 +55,8 @@ const STANDARD_OPTIONS = [
   '8th Std',
   '9th Std',
   '10th Std',
+  '11th Std',
+  '12th Std',
   'Adult Learner',
 ];
 
