@@ -501,11 +501,11 @@ export const Dashboard = () => {
                                 
                                 <div className="space-y-4 relative z-10">
                                   {/* Top banner image */}
-                                  <div className="h-36 bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
-                                    <img
-                                      src={course.image || FALLBACK_COURSE_IMAGE}
-                                      alt={course.name}
-                                      className={`w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ${isExpired ? 'grayscale' : ''}`}
+                                   <div className="aspect-video bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                                     <img
+                                       src={course.image || FALLBACK_COURSE_IMAGE}
+                                       alt={course.name}
+                                       className={`w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ${isExpired ? 'grayscale' : ''}`}
                                       onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
                                     />
                                     {/* Progress badge */}
@@ -608,11 +608,11 @@ export const Dashboard = () => {
 
                                       <div className="space-y-4 relative z-10">
                                         {/* Top banner image */}
-                                        <div className="h-36 bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
-                                          <img
-                                            src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
-                                            alt={workshop.title}
-                                            className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                                         <div className="aspect-video bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                                           <img
+                                             src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
+                                             alt={workshop.title}
+                                             className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                                             onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
                                           />
                                           {/* Status tag absolute on top right */}
@@ -714,7 +714,7 @@ export const Dashboard = () => {
                         className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
                       >
                         <div className="space-y-4">
-                          <div className="h-48 bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                          <div className="aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                             <img
                               src={course.image || FALLBACK_COURSE_IMAGE}
                               alt={course.name}
@@ -819,7 +819,7 @@ export const Dashboard = () => {
                         className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
                       >
                         <div className="space-y-4">
-                          <div className="h-48 bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
+                          <div className="aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                             <img
                               src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
                               alt={workshop.title}

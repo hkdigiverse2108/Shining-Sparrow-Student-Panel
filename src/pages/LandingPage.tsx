@@ -238,7 +238,7 @@ export const LandingPage = () => {
                     whileHover={{ y: -5 }}
                     className="flex flex-col bg-white border dark:bg-slate-800 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                   >
-                    <div className="h-48 bg-slate-100 dark:bg-slate-900 relative">
+                    <div className="aspect-video bg-slate-100 dark:bg-slate-900 relative">
                       <img
                         src={course.image || 'https://images.unsplash.com/photo-1596495578065-6e076b8df1d8?q=80&w=600'}
                         alt={course.name}
@@ -293,7 +293,7 @@ export const LandingPage = () => {
                     whileHover={{ y: -5 }}
                     className="flex flex-col bg-white border dark:bg-slate-800 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                   >
-                    <div className="h-48 bg-slate-100 dark:bg-slate-900 relative">
+                    <div className="aspect-video bg-slate-100 dark:bg-slate-900 relative">
                       <img
                         src={workshop.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'}
                         alt={workshop.title}

@@ -51,7 +51,11 @@ const AppLayout = () => {
     };
 
     const handlePaste = (e: ClipboardEvent) => {
-      e.preventDefault();
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      if (!isInput) {
+        e.preventDefault();
+      }
     };
 
     // Prevent dragging content out of the page
