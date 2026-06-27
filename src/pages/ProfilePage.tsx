@@ -73,7 +73,7 @@ export const ProfilePage = () => {
 
   // Profile Form States
   const [fullName, setFullName] = useState(student?.fullName || '');
-  const [phoneNumber, setPhoneNumber] = useState(student?.phoneNumber || '');
+  const phoneNumber = student?.phoneNumber || '';
   const [district, setDistrict] = useState(student?.district || '');
   const [std, setStd] = useState(student?.std || '5th Std');
   const [schoolName, setSchoolName] = useState(student?.schoolName || '');
@@ -411,16 +411,16 @@ export const ProfilePage = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Phone Number
+                  <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(read-only)</span>
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600" size={16} />
                   <input
                     type="tel"
-                    required
+                    readOnly
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="+91 12345 67890"
-                    className="ui-input pl-11"
+                    className="ui-input pl-11 bg-slate-100/50 dark:bg-slate-950/50 text-slate-405 dark:text-slate-500 cursor-not-allowed border-dashed"
                   />
                 </div>
               </div>
