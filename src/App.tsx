@@ -146,7 +146,9 @@ const AppLayout = () => {
       document.body.classList.add("screenshot-protect-blur");
       try {
         navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
-      } catch {}
+      } catch {
+        //..?.ok
+      }
     };
 
     const handleFocus = () => {
@@ -158,8 +160,33 @@ const AppLayout = () => {
         document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
-        } catch {}
+        } catch {
+          //..?.ok
+        }
       } else {
+        document.body.classList.remove("screenshot-protect-blur");
+      }
+    };
+
+    // Protect against mobile multi-finger screenshots (e.g. 3-finger swipe screenshot)
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length >= 3) {
+        document.body.classList.add("screenshot-protect-blur");
+        try {
+          navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
+        } catch {}
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length >= 3) {
+        document.body.classList.add("screenshot-protect-blur");
+      }
+    };
+
+    const handleTouchEnd = () => {
+      // Only remove if the window is currently focused (not minimized/tab-switched)
+      if (document.hasFocus() && !document.hidden) {
         document.body.classList.remove("screenshot-protect-blur");
       }
     };
@@ -175,6 +202,9 @@ const AppLayout = () => {
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener("contextmenu", handleContextMenu);
@@ -188,6 +218,9 @@ const AppLayout = () => {
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
     };
   }, []);
   
