@@ -3,7 +3,7 @@ import { useGallery } from '../hooks/useGallery';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Folder, Image as ImageIcon, Search, ChevronLeft, ChevronRight,
-  X, ZoomIn, Calendar, ArrowLeft, Download, Maximize2, FolderOpen
+  X, ZoomIn, Calendar, ArrowLeft, Download, FolderOpen
 } from 'lucide-react';
 import { getImageUrl } from '../utils/fallbacks';
 
@@ -15,14 +15,45 @@ interface GalleryItem {
   createdAt: string;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 15, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+};
+
 export const GalleryPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedAlbum, setSelectedAlbum] = useState<GalleryItem | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   // Fetch all gallery items
   const { data: galleryRes, isLoading } = useGallery({
-    search: searchQuery,
+    search: debouncedSearch,
     hasImages: 'true'
   });
 
@@ -150,10 +181,16 @@ export const GalleryPage = () => {
             </div>
 
             {/* Photo Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+            >
               {selectedAlbum.images.map((image, idx) => (
                 <motion.div
                   key={idx}
+                  variants={itemVariants}
                   whileHover={{ y: -6, scale: 1.02 }}
                   onClick={() => setActiveImageIndex(idx)}
                   className="relative aspect-square bg-slate-200 dark:bg-slate-900 rounded-2xl overflow-hidden cursor-zoom-in group border border-slate-200 dark:border-slate-800 shadow-sm transition-all"
@@ -169,7 +206,7 @@ export const GalleryPage = () => {
                   </div>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </motion.div>
         ) : (
           /* ================= FOLDER SURFING DIRECTORY VIEW ================= */
@@ -198,10 +235,16 @@ export const GalleryPage = () => {
               </div>
             ) : (
               /* Actual Folder shaped components grid */
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 sm:gap-10">
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8 sm:gap-10"
+              >
                 {galleryData.map((album) => (
                   <motion.div
                     key={album._id}
+                    variants={itemVariants}
                     onClick={() => handleOpenAlbum(album)}
                     className="relative group cursor-pointer flex flex-col items-center select-none"
                   >
@@ -256,7 +299,7 @@ export const GalleryPage = () => {
 
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </motion.div>
         )}

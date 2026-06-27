@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import galleryService from '../services/gallery.service';
 import type { GalleryListParams } from '../services/gallery.service';
 
@@ -6,6 +6,7 @@ export const useGallery = (params?: GalleryListParams) => {
   return useQuery({
     queryKey: ['gallery', params],
     queryFn: () => galleryService.getAllGallery(params),
+    placeholderData: keepPreviousData,
   });
 };
 

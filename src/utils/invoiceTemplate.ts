@@ -11,6 +11,26 @@ interface InvoiceParams {
   finalAmount: number;
   status: string;
   date: string;
+  studentDistrict?: string;
+  studentAddress?: string;
+}
+
+const GUJARAT_DISTRICTS = [
+  'ahmedabad', 'amreli', 'anand', 'aravalli', 'banaskantha', 'bharuch', 'bhavnagar', 
+  'botad', 'dahod', 'dang', 'devbhoomi dwarka', 'gandhinagar', 'gir somnath', 'jamnagar', 
+  'junagadh', 'kheda', 'kutch', 'mahisagar', 'mehsana', 'morbi', 'narmada', 'navsari', 
+  'panchmahal', 'patan', 'porbandar', 'rajkot', 'sabarkantha', 'surat', 'surendranagar', 
+  'tapi', 'vadodara', 'valsad'
+];
+
+function isGujaratUser(district?: string, address?: string): boolean {
+  if (district && GUJARAT_DISTRICTS.includes(district.toLowerCase().trim())) {
+    return true;
+  }
+  if (address && address.toLowerCase().includes('gujarat')) {
+    return true;
+  }
+  return false;
 }
 
 function formatCurrency(amount: number): string {
@@ -57,12 +77,12 @@ export function generateInvoiceHTML(params: InvoiceParams): string {
     studentEmail,
     studentPhone,
     orderId,
-    paymentId: _paymentId,
     originalPrice,
     discountAmount,
     finalAmount,
-    status: _status,
     date,
+    studentDistrict,
+    studentAddress,
   } = params;
 
   const invoiceDate = formatDate(date);
@@ -554,6 +574,19 @@ export function generateInvoiceHTML(params: InvoiceParams): string {
           <td>${formatCurrency(originalPrice)}</td>
         </tr>
         ${hasDiscount ? `<tr class="discount-row"><td>Less: Discount</td><td>-${formatCurrency(discountAmount)}</td></tr>` : ''}
+        ${isGujaratUser(studentDistrict, studentAddress) ? `
+        <tr>
+          <td>Add: CGST (0%)</td>
+          <td>₹0.00</td>
+        </tr>
+        <tr>
+          <td>Add: SGST (0%)</td>
+          <td>₹0.00</td>
+        </tr>` : `
+        <tr>
+          <td>Add: IGST (0%)</td>
+          <td>₹0.00</td>
+        </tr>`}
         <tr>
           <td>Round Off</td>
           <td>+₹0.00</td>

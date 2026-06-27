@@ -46,6 +46,8 @@ export const PaymentHistoryPage = () => {
       finalAmount: record.finalAmount || record.amount,
       status: record.status,
       date: record.date,
+      studentDistrict: student?.district || '',
+      studentAddress: student?.address || '',
     });
 
     printWindow.document.write(htmlContent);
