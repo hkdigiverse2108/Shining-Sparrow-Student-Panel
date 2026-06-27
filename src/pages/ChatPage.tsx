@@ -7,7 +7,7 @@ import type { ChatMessage, ChatRoom } from '../services/chat.service';
 import { MessageSquare, Send, Globe, ArrowLeft, Loader2, Paperclip, FileText, ImageIcon, Download, X, File, CornerUpLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
-import { getAvatarFallback } from '../utils/fallbacks';
+import { getAvatarFallback, getImageUrl } from '../utils/fallbacks';
 import client from '../api/client';
 
 export const ChatPage = () => {
@@ -277,7 +277,7 @@ export const ChatPage = () => {
                     }`}
                   >
                     <img
-                      src={otherParticipant?.role === 'admin' ? getAvatarFallback('Teacher') : otherParticipant?.profilePhoto || getAvatarFallback(otherParticipant?.fullName || 'User')}
+                      src={otherParticipant?.role === 'admin' ? getAvatarFallback('Teacher') : getImageUrl(otherParticipant?.profilePhoto) || getAvatarFallback(otherParticipant?.fullName || 'User')}
                       alt="Teacher"
                       className="w-9 h-9 rounded-full object-cover border dark:border-slate-700 shrink-0"
                     />
@@ -339,7 +339,7 @@ export const ChatPage = () => {
                 <img
                   src={(() => {
                     const other = selectedRoom.participants.find(p => p._id !== student?._id);
-                    return other?.role === 'admin' ? getAvatarFallback('Teacher') : other?.profilePhoto || getAvatarFallback('User');
+                    return other?.role === 'admin' ? getAvatarFallback('Teacher') : getImageUrl(other?.profilePhoto) || getAvatarFallback('User');
                   })()}
                   alt=""
                   className="w-9 h-9 rounded-full object-cover border dark:border-slate-700"
@@ -445,16 +445,16 @@ export const ChatPage = () => {
                           {msg.attachment && (
                             <div className="rounded-xl overflow-hidden mb-2">
                               {msg.attachment.type === 'image' ? (
-                                <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
+                                <a href={getImageUrl(msg.attachment.url)} target="_blank" rel="noopener noreferrer">
                                   <img
-                                    src={msg.attachment.url}
+                                    src={getImageUrl(msg.attachment.url)}
                                     alt={msg.attachment.name}
                                     className="max-w-full max-h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                                   />
                                 </a>
                               ) : (
                                 <a
-                                  href={msg.attachment.url}
+                                  href={getImageUrl(msg.attachment.url)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${

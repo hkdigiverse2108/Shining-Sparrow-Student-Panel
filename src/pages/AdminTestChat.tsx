@@ -7,7 +7,7 @@ import type { ChatMessage, ChatRoom } from '../services/chat.service';
 import { ShieldCheck, Globe, Send, Loader2, Users, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
-import { getAvatarFallback } from '../utils/fallbacks';
+import { getAvatarFallback, getImageUrl } from '../utils/fallbacks';
 
 export const AdminTestChat = () => {
   const { student } = useAuth();
@@ -173,7 +173,7 @@ export const AdminTestChat = () => {
                       }`}
                     >
                       <img
-                        src={other?.profilePhoto || getAvatarFallback(other?.fullName || 'Student')}
+                        src={getImageUrl(other?.profilePhoto) || getAvatarFallback(other?.fullName || 'Student')}
                         alt={other?.fullName}
                         className="w-9 h-9 rounded-full object-cover border dark:border-slate-700 shrink-0"
                       />

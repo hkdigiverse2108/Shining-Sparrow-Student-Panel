@@ -10,6 +10,7 @@ import {
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import confetti from 'canvas-confetti';
+import { getImageUrl } from '../utils/fallbacks';
 
 interface Question {
   _id: string;
@@ -524,7 +525,7 @@ export const ExamInterfacePage = () => {
                       {/* Graphic Attachment */}
                       {activeQuestion.questionImage && (
                         <div className="flex justify-center p-2 bg-slate-50 dark:bg-page-dark rounded-xl border dark:border-slate-800/60 w-28 h-28 sm:w-36 sm:h-36">
-                          <img src={activeQuestion.questionImage} alt="Finger Position" className="max-h-full max-w-full object-contain" />
+                          <img src={getImageUrl(activeQuestion.questionImage)} alt="Finger Position" className="max-h-full max-w-full object-contain" />
                         </div>
                       )}
 
@@ -841,7 +842,7 @@ export const ExamInterfacePage = () => {
               {currentQuestion.questionType === 'image' && currentQuestion.questionImage && (
                 <div className="w-full h-48 rounded-2xl overflow-hidden bg-slate-50 border dark:border-slate-700 flex items-center justify-center p-4">
                   <img
-                    src={currentQuestion.questionImage}
+                    src={getImageUrl(currentQuestion.questionImage)}
                     alt="Question Graphic"
                     className="max-h-full max-w-full object-contain"
                   />

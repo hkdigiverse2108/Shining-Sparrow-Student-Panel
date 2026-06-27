@@ -11,7 +11,7 @@ import {
   CreditCard, HelpCircle, Image
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { handleImageError, getAvatarFallback } from '../utils/fallbacks';
+import { handleImageError, getAvatarFallback, getImageUrl } from '../utils/fallbacks';
 
 import { useChatContext } from '../context/ChatContext';
 
@@ -227,7 +227,7 @@ export const Sidebar = () => {
             className="relative flex justify-center group cursor-pointer"
           >
             <img
-              src={student.profilePhoto || getAvatarFallback(student.fullName)}
+              src={getImageUrl(student.profilePhoto) || getAvatarFallback(student.fullName)}
               alt={student.fullName}
               className="w-11 h-11 rounded-full border-2 border-orange-200 dark:border-orange-900 object-cover shadow-sm hover:scale-105 transition-transform"
               onError={(e) => handleImageError(e, getAvatarFallback(student.fullName))}
@@ -236,7 +236,7 @@ export const Sidebar = () => {
             <div className="absolute left-full bottom-0 ml-4 p-3.5 rounded-2xl bg-slate-900/95 dark:bg-slate-950/98 text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl space-y-2.5 border border-slate-800">
               <div className="flex items-center gap-2.5 border-b border-slate-800 pb-2">
                 <img
-                  src={student.profilePhoto || getAvatarFallback(student.fullName)}
+                  src={getImageUrl(student.profilePhoto) || getAvatarFallback(student.fullName)}
                   alt={student.fullName}
                   className="w-8 h-8 rounded-full object-cover"
                   onError={(e) => handleImageError(e, getAvatarFallback(student.fullName))}
@@ -261,7 +261,7 @@ export const Sidebar = () => {
           <div className="p-3.5 bg-orange-50/40 dark:bg-orange-950/10 border border-orange-100/50 dark:border-orange-950/20 rounded-2xl space-y-2.5">
             <div className="flex items-center gap-3">
               <img
-                src={student.profilePhoto || getAvatarFallback(student.fullName)}
+                src={getImageUrl(student.profilePhoto) || getAvatarFallback(student.fullName)}
                 alt={student.fullName}
                 className="w-10 h-10 rounded-full border border-orange-200 dark:border-orange-900 object-cover"
                 onError={(e) => handleImageError(e, getAvatarFallback(student.fullName))}

@@ -8,6 +8,7 @@ import { CardSkeleton } from '../components/Loader';
 import { Search, ChevronDown, ChevronRight, BookOpen, Video, Award, Star, Languages, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+import { getImageUrl } from '../utils/fallbacks';
 
 type FaqLang = 'en' | 'hi' | 'gu';
 
@@ -240,7 +241,7 @@ export const LandingPage = () => {
                   >
                     <div className="aspect-video bg-slate-100 dark:bg-slate-900 relative">
                       <img
-                        src={course.image || 'https://images.unsplash.com/photo-1596495578065-6e076b8df1d8?q=80&w=600'}
+                        src={getImageUrl(course.image) || 'https://images.unsplash.com/photo-1596495578065-6e076b8df1d8?q=80&w=600'}
                         alt={course.name}
                         className="w-full h-full object-cover"
                       />
@@ -295,7 +296,7 @@ export const LandingPage = () => {
                   >
                     <div className="aspect-video bg-slate-100 dark:bg-slate-900 relative">
                       <img
-                        src={workshop.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'}
+                        src={getImageUrl(workshop.image) || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'}
                         alt={workshop.title}
                         className="w-full h-full object-cover"
                       />
@@ -403,7 +404,7 @@ export const LandingPage = () => {
                 </p>
                 <div className="flex items-center gap-3 pt-4 border-t dark:border-slate-700">
                   <img
-                    src={test.image || 'https://api.dicebear.com/7.x/initials/svg?seed=' + test.name}
+                    src={getImageUrl(test.image) || 'https://api.dicebear.com/7.x/initials/svg?seed=' + test.name}
                     alt={test.name}
                     className="w-10 h-10 rounded-full object-cover border border-slate-100"
                   />

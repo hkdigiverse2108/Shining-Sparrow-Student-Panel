@@ -8,6 +8,7 @@ import { User, Phone, Landmark, School, Save, Copy, Check, Mail, MapPin, BookOpe
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import client from '../api/client';
+import { getImageUrl } from '../utils/fallbacks';
 
 const cardContainerVariants = {
   initial: { opacity: 0 },
@@ -198,7 +199,7 @@ export const ProfilePage = () => {
     }
   };
 
-  const avatarSrc = profilePhoto || `https://api.dicebear.com/7.x/bottts/svg?seed=${student?.otr}`;
+  const avatarSrc = getImageUrl(profilePhoto) || `https://api.dicebear.com/7.x/bottts/svg?seed=${student?.otr}`;
 
   return (
     <div className="w-full min-h-screen">

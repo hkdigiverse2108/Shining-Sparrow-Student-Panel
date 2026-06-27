@@ -6,6 +6,7 @@ import { Sun, Moon, LogOut, User, Menu, X, Copy, Check } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 import { LogoutConfirmationModal } from './LogoutConfirmationModal';
+import { getImageUrl } from '../utils/fallbacks';
 
 export const Navbar = () => {
   const { student, isAuthenticated, logout } = useAuth();
@@ -95,7 +96,7 @@ export const Navbar = () => {
                   className="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors border border-transparent hover:border-orange-200/40 dark:hover:border-slate-700"
                 >
                   <img
-                    src={student.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${student.fullName}`}
+                    src={getImageUrl(student.profilePhoto) || `https://api.dicebear.com/7.x/initials/svg?seed=${student.fullName}`}
                     alt="profile"
                     className="w-8 h-8 rounded-full border border-orange-100 dark:border-orange-950 object-cover"
                   />

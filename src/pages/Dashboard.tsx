@@ -13,7 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import { 
-  handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, getAvatarFallback 
+  handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, getAvatarFallback, getImageUrl 
 } from '../utils/fallbacks';
 
 interface EnrolledCourse {
@@ -94,7 +94,7 @@ const HeroBannerCarousel = ({ banners }: { banners: BannerImage[] }) => {
       if (banner.images && banner.images.length > 0) {
         banner.images.forEach((img) => {
           slides.push({
-            image: img,
+            image: getImageUrl(img),
             title: banner.title,
             description: banner.description,
             link: banner.link,
@@ -102,7 +102,7 @@ const HeroBannerCarousel = ({ banners }: { banners: BannerImage[] }) => {
         });
       } else if (banner.image) {
         slides.push({
-          image: banner.image,
+          image: getImageUrl(banner.image),
           title: banner.title,
           description: banner.description,
           link: banner.link,
@@ -503,7 +503,7 @@ export const Dashboard = () => {
                                   {/* Top banner image */}
                                    <div className="aspect-video bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                                      <img
-                                       src={course.image || FALLBACK_COURSE_IMAGE}
+                                       src={getImageUrl(course.image) || FALLBACK_COURSE_IMAGE}
                                        alt={course.name}
                                        className={`w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ${isExpired ? 'grayscale' : ''}`}
                                       onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
@@ -610,7 +610,7 @@ export const Dashboard = () => {
                                         {/* Top banner image */}
                                          <div className="aspect-video bg-slate-50 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                                            <img
-                                             src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
+                                             src={getImageUrl(workshop.image) || FALLBACK_WORKSHOP_IMAGE}
                                              alt={workshop.title}
                                              className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                                             onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
@@ -716,7 +716,7 @@ export const Dashboard = () => {
                         <div className="space-y-4">
                           <div className="aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                             <img
-                              src={course.image || FALLBACK_COURSE_IMAGE}
+                              src={getImageUrl(course.image) || FALLBACK_COURSE_IMAGE}
                               alt={course.name}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                               onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
@@ -821,7 +821,7 @@ export const Dashboard = () => {
                         <div className="space-y-4">
                           <div className="aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
                             <img
-                              src={workshop.image || FALLBACK_WORKSHOP_IMAGE}
+                              src={getImageUrl(workshop.image) || FALLBACK_WORKSHOP_IMAGE}
                               alt={workshop.title}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                               onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
@@ -901,7 +901,7 @@ export const Dashboard = () => {
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
                     {blogs.map((blog) => {
-                      const blogImage = blog.coverImage || blog.mainImage || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600';
+                      const blogImage = getImageUrl(blog.coverImage || blog.mainImage) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600';
                       const formattedDate = new Date(blog.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',

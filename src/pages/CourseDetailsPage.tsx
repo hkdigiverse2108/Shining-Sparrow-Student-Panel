@@ -9,7 +9,7 @@ import { useToast } from '../context/ToastContext';
 import { Loader } from '../components/Loader';
 import { loadRazorpayScript } from '../utils/razorpay';
 import { 
-  handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE 
+  handleImageError, FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, getImageUrl 
 } from '../utils/fallbacks';
 import { ArrowRight, Play, BookOpen, FileText, Award, Clock, Calendar, Check, ShieldCheck, Zap, Maximize2, Minimize2, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -103,14 +103,6 @@ const getEmbedUrl = (url: string) => {
   return embedUrl;
 };
 
-const getImageUrl = (imagePath?: string) => {
-  if (!imagePath) return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
-    return imagePath;
-  }
-  const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.29.26:5555';
-  return `${API_URL}/${imagePath.replace(/^\//, '')}`;
-};
 
 export const CourseDetailsPage = () => {
   const { id } = useParams<{ id: string }>();

@@ -5,6 +5,7 @@ import {
   Folder, Image as ImageIcon, Search, ChevronLeft, ChevronRight,
   X, ZoomIn, Calendar, ArrowLeft, Download, Maximize2, FolderOpen
 } from 'lucide-react';
+import { getImageUrl } from '../utils/fallbacks';
 
 interface GalleryItem {
   _id: string;
@@ -158,7 +159,7 @@ export const GalleryPage = () => {
                   className="relative aspect-square bg-slate-200 dark:bg-slate-900 rounded-2xl overflow-hidden cursor-zoom-in group border border-slate-200 dark:border-slate-800 shadow-sm transition-all"
                 >
                   <img
-                    src={image}
+                    src={getImageUrl(image)}
                     alt={`${selectedAlbum.title} - ${idx + 1}`}
                     className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-108"
                     loading="lazy"
@@ -223,7 +224,7 @@ export const GalleryPage = () => {
                           {/* Main sheet showing photo preview */}
                           <div className="absolute inset-x-3.5 top-0 bottom-4 bg-white dark:bg-slate-850 rounded p-1 shadow-md -rotate-3 transform transition-transform group-hover:-translate-y-9 group-hover:-rotate-6 duration-300 origin-bottom">
                             <img 
-                              src={album.images[0]} 
+                              src={getImageUrl(album.images[0])} 
                               alt="preview" 
                               className="w-full h-full object-cover rounded-sm"
                             />
@@ -318,7 +319,7 @@ export const GalleryPage = () => {
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
-                  src={selectedAlbum.images[activeImageIndex]}
+                  src={getImageUrl(selectedAlbum.images[activeImageIndex])}
                   alt={`${selectedAlbum.title} - ${activeImageIndex + 1}`}
                   className="max-h-[75vh] max-w-full object-contain select-none"
                 />
@@ -339,13 +340,13 @@ export const GalleryPage = () => {
                   <button
                     key={i}
                     onClick={() => setActiveImageIndex(i)}
-                    className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
                       i === activeImageIndex 
                         ? 'border-orange-500 scale-105 shadow-md shadow-orange-500/20' 
                         : 'border-transparent opacity-50 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                    <img src={getImageUrl(img)} alt="thumb" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

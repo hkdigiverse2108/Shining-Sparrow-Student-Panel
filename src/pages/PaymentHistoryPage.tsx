@@ -5,7 +5,7 @@ import { Loader } from '../components/Loader';
 import { motion } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import { CreditCard, Calendar, Receipt, TrendingUp, CheckCircle, Clock, AlertTriangle, Download } from 'lucide-react';
-import { FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, handleImageError } from '../utils/fallbacks';
+import { FALLBACK_COURSE_IMAGE, FALLBACK_WORKSHOP_IMAGE, handleImageError, getImageUrl } from '../utils/fallbacks';
 import { generateInvoiceHTML } from '../utils/invoiceTemplate';
 
 interface PaymentRecord {
@@ -171,7 +171,7 @@ export const PaymentHistoryPage = () => {
                 >
                   <div className="flex items-start sm:items-center gap-4 min-w-0">
                     <img 
-                      src={record.image || fallbackImg} 
+                      src={getImageUrl(record.image) || fallbackImg} 
                       alt={record.name}
                       onError={(e) => handleImageError(e, fallbackImg)}
                       className="w-12 h-12 rounded-xl object-cover border dark:border-slate-800 shrink-0"
