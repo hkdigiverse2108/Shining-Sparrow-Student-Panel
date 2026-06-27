@@ -11,5 +11,9 @@ export default defineConfig(({ mode }) => {
     server: {
       port: port,
     },
+    preview: {
+      port: port,
+      strictPort: true,
+    },
   };
 })
