@@ -78,7 +78,7 @@ const AppLayout = () => {
         (e.ctrlKey && e.shiftKey && (e.key === "s" || e.key === "S")) ||
         (e.ctrlKey && e.shiftKey && (e.key === "PrintScreen" || e.key === "Print"))
       ) {
-        // document.body.classList.add("screenshot-protect-blur");
+        document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
         } catch (err) {}
@@ -127,7 +127,7 @@ const AppLayout = () => {
         e.key === "PrintScreen" ||
         (e.metaKey && e.shiftKey && (e.key === "s" || e.key === "S"))
       ) {
-        // document.body.classList.add("screenshot-protect-blur");
+        document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
         } catch (err) {}
@@ -136,7 +136,14 @@ const AppLayout = () => {
 
     // Protect against screenshots/overlays by blurring when window loses focus and clearing clipboard
     const handleBlur = () => {
-      // document.body.classList.add("screenshot-protect-blur");
+      // Clicking inside a same-page <iframe> (e.g. the YouTube video player) makes the
+      // browser fire a "blur" event on the parent window, even though the user never
+      // left the app. In that case document.activeElement becomes the iframe itself.
+      // Skip the screenshot-protection blur for that case so the video player stays usable.
+      if (document.activeElement && document.activeElement.tagName === "IFRAME") {
+        return;
+      }
+      document.body.classList.add("screenshot-protect-blur");
       try {
         navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
       } catch {}
@@ -148,7 +155,7 @@ const AppLayout = () => {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // document.body.classList.add("screenshot-protect-blur");
+        document.body.classList.add("screenshot-protect-blur");
         try {
           navigator.clipboard?.writeText("Screenshots are disabled on Shining Sparrow.").catch(() => {});
         } catch {}

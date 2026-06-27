@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCourse } from '../hooks/useCourses';
+import { getImageUrl } from '../utils/fallbacks';
 import { useExamForLesson, useCompleteLesson, useExamAttempts } from '../hooks/useLMS';
 import { useToast } from '../context/ToastContext';
 import { Loader } from '../components/Loader';
@@ -58,7 +59,7 @@ interface Course {
 }
 
 // Helper to parse YouTube URLs to embed URLs
-const getEmbedUrl = (url: string) => {
+const getEmbedUrl = (url: string, autoplay = 0) => {
   if (!url) return '';
   
   let embedUrl = url;
@@ -72,17 +73,35 @@ const getEmbedUrl = (url: string) => {
     }
     
     if (videoId) {
-      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
+      embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay}&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
     }
   } else {
+    if (embedUrl.includes('autoplay=')) {
+      embedUrl = embedUrl.replace(/autoplay=[01]/, `autoplay=${autoplay}`);
+    } else {
+      const separator = embedUrl.includes('?') ? '&' : '?';
+      embedUrl = `${embedUrl}${separator}autoplay=${autoplay}`;
+    }
     const separator = embedUrl.includes('?') ? '&' : '?';
     if (!embedUrl.includes('controls=')) {
-      embedUrl = `${embedUrl}${separator}autoplay=0&controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
+      embedUrl = `${embedUrl}${separator}controls=2&modestbranding=1&rel=0&iv_load_policy=3&fs=0&playsinline=1&disablekb=0`;
     }
   }
   
   return embedUrl;
 };
+
+const getYoutubeThumbnail = (url: string) => {
+  if (!url) return '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+  }
+  return '';
+};
+
+const FALLBACK_THUMB = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200';
 
 // Get icon component based on exam title/type
 const getExamTypeIcon = (title: string) => {
@@ -137,6 +156,11 @@ export const CourseLMSPage = () => {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  React.useEffect(() => {
+    setIsPlaying(false);
+  }, [selectedLessonId]);
   
   // UI states
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -181,6 +205,14 @@ export const CourseLMSPage = () => {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  React.useEffect(() => {
+    if (isPlaying && videoRef.current) {
+      videoRef.current.play().catch(err => {
+        console.error("Autoplay failed:", err);
+      });
+    }
+  }, [isPlaying]);
 
   React.useEffect(() => {
     const handleFullscreenChange = () => {
@@ -275,6 +307,7 @@ export const CourseLMSPage = () => {
       activeLesson = course.courseLessonIds.find((l: Lesson) => l._id === selectedLessonId);
     }
   }
+  console.log("activeLesson:", activeLesson);
 
   // Determine correct course ID for exam query (sub-course ID for merged courses, parent course ID for single courses)
   let targetCourseId = courseId || '';
@@ -761,26 +794,44 @@ export const CourseLMSPage = () => {
                   ref={playerContainerRef}
                   className="group relative aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 border border-orange-100 dark:border-slate-800 shadow-lg"
                   onContextMenu={(e) => e.preventDefault()}
-                  onClick={() => {
-                    if (iframeRef.current) iframeRef.current.focus();
-                    else if (videoRef.current) videoRef.current.focus();
-                  }}
                 >
-                  {activeLesson.videoLink.includes('youtube.com') || activeLesson.videoLink.includes('youtu.be') ? (
-                    <>
-                      <iframe
-                        ref={iframeRef}
-                        src={getEmbedUrl(activeLesson.videoLink)}
-                        title={activeLesson.title}
-                        className="absolute inset-0 w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
+                  {!isPlaying ? (
+                    <div 
+                      className="absolute inset-0 w-full h-full cursor-pointer"
+                      onClick={() => setIsPlaying(true)}
+                    >
+                      {/* Thumbnail Image */}
+                      <img 
+                        src={
+                          activeLesson.thumbnail 
+                            ? getImageUrl(activeLesson.thumbnail) 
+                            : (activeLesson.videoLink && (activeLesson.videoLink.includes('youtube.com') || activeLesson.videoLink.includes('youtu.be'))
+                              ? getYoutubeThumbnail(activeLesson.videoLink)
+                              : FALLBACK_THUMB)
+                        } 
+                        alt={activeLesson.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = FALLBACK_THUMB;
+                        }}
+                      />
                       
-                      {/* Top bar visual shield + branding */}
-                      <div 
-                        className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/90 to-slate-950/20 backdrop-blur-[2px] z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! group-hover:backdrop-blur-[2px]! transition-all duration-500"
-                      >
+                      {/* Dark overlay */}
+                      <div className="absolute inset-0 bg-slate-950/45 group-hover:bg-slate-950/50 transition-colors duration-300" />
+                      
+                      {/* Large Pulsing Play Button */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group/btn">
+                          {/* Inner pulsing layer */}
+                          <div className="absolute inset-0 rounded-full bg-orange-600 animate-ping opacity-20 pointer-events-none group-hover/btn:opacity-30" />
+                          <svg className="w-6 h-6 sm:w-8 sm:h-8 fill-current ml-1" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Header title overlay */}
+                      <div className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/80 to-transparent flex items-center px-6">
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></span>
                           <span className="text-sm font-bold text-white tracking-wide truncate max-w-70 sm:max-w-md">
@@ -788,36 +839,75 @@ export const CourseLMSPage = () => {
                           </span>
                         </div>
                       </div>
-                      
-                      {/* Bottom-right visual shield + branding */}
-                      <div className="absolute bottom-3 right-3 z-10 pointer-events-none select-none">
+
+                      {/* Duration overlay on bottom-left */}
+                      {activeLesson.duration && (
+                        <div className="absolute bottom-3 left-3 px-3 py-1.5 bg-slate-950/70 backdrop-blur-md rounded-xl text-[10px] font-black text-white/90">
+                          {activeLesson.duration}
+                        </div>
+                      )}
+
+                      {/* Branding overlay on bottom-right */}
+                      <div className="absolute bottom-3 right-3">
                         <div className="px-3 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-orange-200">
                           Shining Sparrow
                         </div>
                       </div>
-
-                      {/* Invisible pointer-events overlays to capture clicks in key redirect regions */}
-                      <div className="absolute top-0 left-0 right-0 h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
-                      <div className="absolute bottom-0 left-0 w-[20%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
-                      <div className="absolute bottom-0 right-0 w-[38%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
-
-                      {/* Custom Fullscreen Toggle Button */}
-                      <button
-                        onClick={toggleFullscreen}
-                        className="absolute bottom-2 left-14 z-20 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm border border-white/20 shadow-lg cursor-pointer transition-colors"
-                        title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                      >
-                        {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                      </button>
-                    </>
+                    </div>
                   ) : (
-                    <video
-                      ref={videoRef}
-                      src={activeLesson.videoLink}
-                      controls
-                      poster={activeLesson.thumbnail || undefined}
-                      className="absolute inset-0 w-full h-full"
-                    ></video>
+                    activeLesson.videoLink.includes('youtube.com') || activeLesson.videoLink.includes('youtu.be') ? (
+                      <>
+                        <iframe
+                          ref={iframeRef}
+                          src={getEmbedUrl(activeLesson.videoLink, 1)}
+                          title={activeLesson.title}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
+                        
+                        {/* Top bar visual shield + branding */}
+                        <div 
+                          className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/90 to-slate-950/20 backdrop-blur-[2px] z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! group-hover:backdrop-blur-[2px]! transition-all duration-500"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></span>
+                            <span className="text-sm font-bold text-white tracking-wide truncate max-w-70 sm:max-w-md">
+                              {activeLesson.title || 'Course Video'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Bottom-right visual shield + branding */}
+                        <div className="absolute bottom-3 right-3 z-10 pointer-events-none select-none">
+                          <div className="px-3 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-orange-200">
+                            Shining Sparrow
+                          </div>
+                        </div>
+
+                        {/* Invisible pointer-events overlays to capture clicks in key redirect regions */}
+                        <div className="absolute top-0 left-0 right-0 h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                        <div className="absolute bottom-0 left-0 w-[20%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                        <div className="absolute bottom-0 right-0 w-[38%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+
+                        {/* Custom Fullscreen Toggle Button */}
+                        <button
+                          onClick={toggleFullscreen}
+                          className="absolute bottom-2 left-14 z-20 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm border border-white/20 shadow-lg cursor-pointer transition-colors"
+                          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                        >
+                          {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                        </button>
+                      </>
+                    ) : (
+                      <video
+                        ref={videoRef}
+                        src={activeLesson.videoLink}
+                        controls
+                        autoPlay
+                        className="absolute inset-0 w-full h-full"
+                      ></video>
+                    )
                   )}
                 </div>
               ) : (
@@ -1053,7 +1143,7 @@ export const CourseLMSPage = () => {
               <div className="grow bg-slate-950 p-2 relative flex items-center justify-center">
                 {/* Overlay covering iframe controls / protecting right click */}
                 <div 
-                  className="absolute inset-0 bg-transparent z-10"
+                  className="absolute inset-0 bg-transparent z-10 pointer-events-none"
                   onContextMenu={(e) => e.preventDefault()}
                 />
                 
