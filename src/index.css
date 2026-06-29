@@ -321,6 +321,23 @@ body {
   box-shadow: 0 0 0 3px rgba(243, 173, 33, 0.15);
 }
 
+select.ui-input {
+  cursor: pointer;
+  padding-right: 2.5rem !important;
+}
+
+select.ui-input option {
+  background-color: #ffffff;
+  color: #3a2212;
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+.dark select.ui-input option {
+  background-color: #0f0a08;
+  color: #f4eae1;
+}
+
 @keyframes topBarFade {
   0% {
     opacity: 1;

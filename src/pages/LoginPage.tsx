@@ -113,7 +113,8 @@ export const LoginPage = () => {
                   type="email"
                   required
                   value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
+                  onChange={(e) => setForgotEmail(e.target.value.slice(0, 35))}
+                  maxLength={35}
                   placeholder="student@example.com"
                   className="ui-input pl-11 font-semibold"
                 />
@@ -154,8 +155,9 @@ export const LoginPage = () => {
                   type="tel"
                   required
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+919876543210"
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  maxLength={10}
+                  placeholder="9876543210"
                   className="ui-input pl-11 font-semibold"
                 />
               </div>
