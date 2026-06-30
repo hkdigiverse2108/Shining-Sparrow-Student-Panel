@@ -29,23 +29,23 @@ const REACH_SOURCES = [
 ];
 
 const STANDARD_OPTIONS = [
-  '1st Std',
-  '2nd Std',
-  '3rd Std',
-  '4th Std',
-  '5th Std',
-  '6th Std',
-  '7th Std',
-  '8th Std',
-  '9th Std',
-  '10th Std',
-  '11th Std',
-  '12th Std',
-  'Adult Learner','Adult Learner',
+  '1st Standard',
+  '2nd Standard',
+  '3rd Standard',
+  '4th Standard',
+  '5th Standard',
+  '6th Standard',
+  '7th Standard',
+  '8th Standard',
+  '9th Standard',
+  '10th Standard',
+  '11th Standard',
+  '12th Standard',
+  'Adult Learner',
 ];
 
 interface SearchableDropdownProps {
-  label: string;
+  label: string; 
   value: string;
   onChange: (val: string) => void;
   options: string[];
@@ -213,7 +213,7 @@ export const SignupPage = () => {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [district, setDistrict] = useState('Surat');
-  const [std, setStd] = useState('5th Std');
+  const [std, setStd] = useState('5th Standard');
   const [reachFrom, setReachFrom] = useState('Instagram');
   const [schoolName, setSchoolName] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -396,7 +396,7 @@ export const SignupPage = () => {
           {/* Std & District */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <SearchableDropdown
-              label="Standard (Std)"
+              label="Standard"
               value={std}
               onChange={setStd}
               options={STANDARD_OPTIONS}

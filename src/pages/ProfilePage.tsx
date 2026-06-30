@@ -55,18 +55,18 @@ const REACH_SOURCES = [
 ];
 
 const STANDARD_OPTIONS = [
-  '1st Std',
-  '2nd Std',
-  '3rd Std',
-  '4th Std',
-  '5th Std',
-  '6th Std',
-  '7th Std',
-  '8th Std',
-  '9th Std',
-  '10th Std',
-  '11th Std',
-  '12th Std',
+  '1st Standard',
+  '2nd Standard',
+  '3rd Standard',
+  '4th Standard',
+  '5th Standard',
+  '6th Standard',
+  '7th Standard',
+  '8th Standard',
+  '9th Standard',
+  '10th Standard',
+  '11th Standard',
+  '12th Standard',
   'Adult Learner',
 ];
 
@@ -243,7 +243,7 @@ export const ProfilePage = () => {
   const [fullName, setFullName] = useState(student?.fullName || '');
   const phoneNumber = student?.phoneNumber || '';
   const [district, setDistrict] = useState(student?.district || '');
-  const [std, setStd] = useState(student?.std || '5th Std');
+  const [std, setStd] = useState(student?.std || '5th Standard');
   const [schoolName, setSchoolName] = useState(student?.schoolName || '');
   const [profilePhoto, setProfilePhoto] = useState(student?.profilePhoto || '');
   const [address, setAddress] = useState(student?.address || '');
