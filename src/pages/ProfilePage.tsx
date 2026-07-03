@@ -290,6 +290,8 @@ export const ProfilePage = () => {
 
   // District state
   const [districtsList, setDistrictsList] = useState<string[]>(GUJARAT_DISTRICTS);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const displayOptions = districtsList.filter(d => d.toLowerCase().includes(district.toLowerCase()));
 
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json')
@@ -589,37 +591,47 @@ export const ProfilePage = () => {
               </div>
             </div>
 
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setShowSuggestions(false)}
-                    placeholder="Select or type district"
-                    className="ui-input pl-11 pr-10 font-semibold cursor-pointer"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSuggestions(!showSuggestions)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-500 p-1 focus:outline-none"
-                  >
-                    <ChevronDown size={16} />
-                  </button>
-                </div>
-                {showSuggestions && displayOptions.length > 0 && (
-                  <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50 p-0 m-0 list-none">
-                    {displayOptions.map((d) => (
-                      <li
-                        key={d}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setDistrict(d);
-                          setShowSuggestions(false);
-                        }}
-                        className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-250 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
-                      >
-                        {d}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+            {/* Row 3: District / Location */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                District / Location
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setShowSuggestions(false)}
+                  placeholder="Select or type district"
+                  className="ui-input pl-11 pr-10 font-semibold cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-500 p-1 focus:outline-none"
+                >
+                  <ChevronDown size={16} />
+                </button>
               </div>
+              {showSuggestions && displayOptions.length > 0 && (
+                <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50 p-0 m-0 list-none">
+                  {displayOptions.map((d) => (
+                    <li
+                      key={d}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setDistrict(d);
+                        setShowSuggestions(false);
+                      }}
+                      className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-250 hover:bg-orange-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                    >
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Row: School Name */}
