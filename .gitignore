@@ -76,3 +76,4 @@ desktop.ini
 # ── Misc ──────────────────────────────────────
 *.local
 .antigravityignore
+package-lock.json
