@@ -291,7 +291,11 @@ export const CourseDetailsPage = () => {
   const hasAccessExpiry = accessExpiryDate !== null && accessExpiryDate !== undefined;
 
 
-  const price = item.price;
+  const rawPrice = item.price;
+  const rawMrp = item.mrpPrice;
+  const hasPriceDiscount = rawMrp > 0 && rawMrp !== rawPrice;
+  const price = hasPriceDiscount ? Math.min(rawPrice, rawMrp) : (rawPrice || 0);
+  const mrpPrice = hasPriceDiscount ? Math.max(rawPrice, rawMrp) : (rawMrp || 0);
   const name = isWorkshop ? item.title : item.name;
   const description = isWorkshop ? item.about : item.description;
   const pdfUrl = isWorkshop ? item.pdfAttach : item.pdf;
@@ -1039,13 +1043,13 @@ export const CourseDetailsPage = () => {
                       <span className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
                         ₹{price}
                       </span>
-                      {item.mrpPrice && item.mrpPrice > price && (
+                      {mrpPrice > 0 && mrpPrice > price && (
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-slate-400 line-through font-medium">
-                            ₹{item.mrpPrice}
+                            ₹{mrpPrice}
                           </span>
                           <span className="text-[10px] bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black px-2.5 py-1 rounded-xl shadow-sm">
-                            {Math.round(((item.mrpPrice - price) / item.mrpPrice) * 100)}% OFF
+                            {Math.round(((mrpPrice - price) / mrpPrice) * 100)}% OFF
                           </span>
                         </div>
                       )}

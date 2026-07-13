@@ -17,6 +17,7 @@ interface Course {
   name: string;
   image?: string;
   price: number;
+  mrpPrice?: number;
   enrolledLearners?: number;
   satisfactionRate?: number;
   description?: string;
@@ -28,6 +29,7 @@ interface Workshop {
   subTitle?: string;
   image?: string;
   price: number;
+  mrpPrice?: number;
   about?: string;
   duration?: string;
 }
@@ -245,8 +247,15 @@ export const LandingPage = () => {
                         alt={course.name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-3 right-3 px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-md">
-                        {course.price === 0 ? 'Free' : `₹${course.price}`}
+                      <div className="absolute top-3 right-3 px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                        {course.mrpPrice > 0 && (course.price || 0) > course.mrpPrice ? (
+                          <>
+                            <span className="line-through opacity-70">₹{course.price}</span>
+                            <span>₹{course.mrpPrice}</span>
+                          </>
+                        ) : (
+                          <span>{course.price === 0 ? 'Free' : `₹${course.price}`}</span>
+                        )}
                       </div>
                     </div>
                     
@@ -300,8 +309,15 @@ export const LandingPage = () => {
                         alt={workshop.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-3 right-3 px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-md">
-                        {workshop.price === 0 ? 'Free' : `₹${workshop.price}`}
+                      <div className="absolute top-3 right-3 px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                        {workshop.mrpPrice > 0 && workshop.mrpPrice > (workshop.price || 0) ? (
+                          <>
+                            <span className="line-through opacity-70">₹{workshop.mrpPrice}</span>
+                            <span>₹{workshop.price}</span>
+                          </>
+                        ) : (
+                          <span>{workshop.price === 0 ? 'Free' : `₹${workshop.price}`}</span>
+                        )}
                       </div>
                     </div>
                     

@@ -65,6 +65,7 @@ interface WorkshopItem {
   description: string;
   image?: string;
   price?: number;
+  mrpPrice?: number;
   duration?: string;
   subTitle?: string;
   about?: string;
@@ -725,8 +726,15 @@ export const Dashboard = () => {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
 
                             {/* Price badge - top right */}
-                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-primary to-orange-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-primary/25 backdrop-blur-sm">
-                              ₹{course.price}
+                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-primary to-orange-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-primary/25 backdrop-blur-sm flex items-center gap-1.5">
+                              {course.mrpPrice > 0 && (course.price || 0) > course.mrpPrice ? (
+                                <>
+                                  <span className="line-through opacity-70 font-semibold">₹{course.price}</span>
+                                  <span>₹{course.mrpPrice}</span>
+                                </>
+                              ) : (
+                                <span>{course.price === 0 ? 'Free' : `₹${course.price || 0}`}</span>
+                              )}
                             </div>
 
                             {/* Level badge - bottom left */}
@@ -830,8 +838,15 @@ export const Dashboard = () => {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
 
                             {/* Price badge */}
-                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-secondary to-amber-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-secondary/25 backdrop-blur-sm">
-                              ₹{workshop.price}
+                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-secondary to-amber-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-secondary/25 backdrop-blur-sm flex items-center gap-1.5">
+                              {workshop.mrpPrice > 0 && workshop.mrpPrice > (workshop.price || 0) ? (
+                                <>
+                                  <span className="line-through opacity-70 font-semibold">₹{workshop.mrpPrice}</span>
+                                  <span>₹{workshop.price}</span>
+                                </>
+                              ) : (
+                                <span>{workshop.price === 0 ? 'Free' : `₹${workshop.price || 0}`}</span>
+                              )}
                             </div>
 
                             {/* Live indicator - top left */}
