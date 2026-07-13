@@ -54,6 +54,7 @@ interface CourseItem {
   description: string;
   image?: string;
   price?: number;
+  mrpPrice?: number;
   level?: string;
   enrolledLearners?: number;
   satisfactionRate?: number;
@@ -727,7 +728,7 @@ export const Dashboard = () => {
 
                             {/* Price badge - top right */}
                             <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-primary to-orange-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-primary/25 backdrop-blur-sm flex items-center gap-1.5">
-                              {course.mrpPrice > 0 && (course.price || 0) > course.mrpPrice ? (
+                              {(course.mrpPrice || 0) > 0 && (course.price || 0) > (course.mrpPrice || 0) ? (
                                 <>
                                   <span className="line-through opacity-70 font-semibold">₹{course.price}</span>
                                   <span>₹{course.mrpPrice}</span>
@@ -839,7 +840,7 @@ export const Dashboard = () => {
 
                             {/* Price badge */}
                             <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-secondary to-amber-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-secondary/25 backdrop-blur-sm flex items-center gap-1.5">
-                              {workshop.mrpPrice > 0 && workshop.mrpPrice > (workshop.price || 0) ? (
+                              {(workshop.mrpPrice || 0) > 0 && (workshop.mrpPrice || 0) > (workshop.price || 0) ? (
                                 <>
                                   <span className="line-through opacity-70 font-semibold">₹{workshop.mrpPrice}</span>
                                   <span>₹{workshop.price}</span>

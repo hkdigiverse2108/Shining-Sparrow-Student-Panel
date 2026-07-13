@@ -248,7 +248,7 @@ export const LandingPage = () => {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-3 right-3 px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-md flex items-center gap-1">
-                        {course.mrpPrice > 0 && (course.price || 0) > course.mrpPrice ? (
+                        {(course.mrpPrice || 0) > 0 && (course.price || 0) > (course.mrpPrice || 0) ? (
                           <>
                             <span className="line-through opacity-70">₹{course.price}</span>
                             <span>₹{course.mrpPrice}</span>
@@ -310,7 +310,7 @@ export const LandingPage = () => {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-3 right-3 px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-md flex items-center gap-1">
-                        {workshop.mrpPrice > 0 && workshop.mrpPrice > (workshop.price || 0) ? (
+                        {(workshop.mrpPrice || 0) > 0 && (workshop.mrpPrice || 0) > (workshop.price || 0) ? (
                           <>
                             <span className="line-through opacity-70">₹{workshop.mrpPrice}</span>
                             <span>₹{workshop.price}</span>
