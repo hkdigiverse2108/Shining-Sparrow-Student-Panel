@@ -962,7 +962,7 @@ export const CourseDetailsPage = () => {
                   <img
                     src={getImageUrl(item.image) || (isWorkshop ? FALLBACK_WORKSHOP_IMAGE : FALLBACK_COURSE_IMAGE)}
                     alt={name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700 ease-out"
                     onError={(e) => handleImageError(e, isWorkshop ? FALLBACK_WORKSHOP_IMAGE : FALLBACK_COURSE_IMAGE)}
                   />
                   {/* Multi-layer gradient overlay */}

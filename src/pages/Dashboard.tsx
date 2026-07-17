@@ -507,7 +507,7 @@ export const Dashboard = () => {
                                      <img
                                        src={getImageUrl(course.image) || FALLBACK_COURSE_IMAGE}
                                        alt={course.name}
-                                       className={`w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ${isExpired ? 'grayscale' : ''}`}
+                                       className={`w-full h-full object-contain group-hover:scale-103 transition-transform duration-300 ${isExpired ? 'grayscale' : ''}`}
                                       onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
                                     />
                                     {/* Progress badge */}
@@ -614,7 +614,7 @@ export const Dashboard = () => {
                                            <img
                                              src={getImageUrl(workshop.image) || FALLBACK_WORKSHOP_IMAGE}
                                              alt={workshop.title}
-                                             className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                                             className="w-full h-full object-contain group-hover:scale-103 transition-transform duration-300"
                                             onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
                                           />
                                           {/* Status tag absolute on top right */}
@@ -720,7 +720,7 @@ export const Dashboard = () => {
                             <img
                               src={getImageUrl(course.image) || FALLBACK_COURSE_IMAGE}
                               alt={course.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                              className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
                               onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
                             />
                             {/* Gradient overlay for better badge readability */}
@@ -832,7 +832,7 @@ export const Dashboard = () => {
                             <img
                               src={getImageUrl(workshop.image) || FALLBACK_WORKSHOP_IMAGE}
                               alt={workshop.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                              className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
                               onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
                             />
                             {/* Gradient overlay */}
