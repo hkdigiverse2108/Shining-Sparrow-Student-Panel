@@ -58,6 +58,102 @@ interface Course {
   courseLessonIds?: Lesson[];
 }
 
+// Helper to format attachment URLs (handles relative backend paths, missing protocols, Google Drive URLs)
+const formatAttachmentUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  let trimmed = url.trim();
+  
+  if (trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  
+  if (trimmed.startsWith('drive.google.com') || trimmed.startsWith('docs.google.com') || trimmed.startsWith('dropbox.com')) {
+    return `https://${trimmed}`;
+  }
+  
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5666').replace(/\/$/, '');
+  const relativePath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${baseUrl}${relativePath}`;
+};
+
+// Helper for PDF embedding / viewing
+const getEmbeddablePdfUrl = (url: string): { isFolder: boolean; embedUrl: string } => {
+  if (!url) return { isFolder: false, embedUrl: '' };
+  
+  if (url.includes('drive.google.com/drive/folders/')) {
+    return { isFolder: true, embedUrl: url };
+  }
+  
+  if (url.includes('drive.google.com/file/d/')) {
+    const embedUrl = url.replace(/\/view(\?.*)?$/, '/preview');
+    return { isFolder: false, embedUrl };
+  }
+
+  if (url.startsWith('data:')) {
+    try {
+      const parts = url.split(";base64,");
+      const contentType = parts[0].replace("data:", "") || "application/pdf";
+      const raw = window.atob(parts[1] || parts[0]);
+      const uInt8Array = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+      const blob = new Blob([uInt8Array], { type: contentType });
+      return { isFolder: false, embedUrl: URL.createObjectURL(blob) };
+    } catch {
+      return { isFolder: false, embedUrl: url };
+    }
+  }
+  
+  return { isFolder: false, embedUrl: url.includes('#') ? url : `${url}#toolbar=0&navpanes=0&scrollbar=0` };
+};
+
+// Helper to handle safe download / open without triggering about:blank#blocked on data URLs
+const handleDownloadAttachment = (url: string | null | undefined, filename = "attachment.pdf") => {
+  if (!url) return;
+  const formattedUrl = formatAttachmentUrl(url);
+
+  if (formattedUrl.startsWith("data:")) {
+    try {
+      const parts = formattedUrl.split(";base64,");
+      const contentType = parts[0].replace("data:", "") || "application/pdf";
+      const base64Data = parts[1] || parts[0];
+      const raw = window.atob(base64Data);
+      const rawLength = raw.length;
+      const uInt8Array = new Uint8Array(rawLength);
+
+      for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+
+      const blob = new Blob([uInt8Array], { type: contentType });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (e) {
+      console.error("Failed to download data URL:", e);
+      const link = document.createElement("a");
+      link.href = formattedUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } else {
+    window.open(formattedUrl, "_blank", "noopener,noreferrer");
+  }
+};
+
 // Helper to parse YouTube URLs to embed URLs
 const getEmbedUrl = (url: string, autoplay = 0) => {
   if (!url) return '';
@@ -957,7 +1053,15 @@ export const CourseLMSPage = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() => setPdfViewerUrl(activeLesson.practiceMaterial || null)}
+                      onClick={() => {
+                        const formatted = formatAttachmentUrl(activeLesson.practiceMaterial);
+                        const { isFolder } = getEmbeddablePdfUrl(formatted);
+                        if (isFolder) {
+                          window.open(formatted, '_blank');
+                        } else {
+                          setPdfViewerUrl(formatted);
+                        }
+                      }}
                       className="p-2 rounded-xl bg-white dark:bg-slate-800 border dark:border-slate-700 text-orange-600 dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-sm cursor-pointer"
                     >
                       <Maximize2 size={16} />
@@ -1131,12 +1235,21 @@ export const CourseLMSPage = () => {
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => setPdfViewerUrl(null)}
-                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDownloadAttachment(pdfViewerUrl)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer"
+                    title="Open / Download Document"
+                  >
+                    <Download size={16} />
+                  </button>
+                  <button
+                    onClick={() => setPdfViewerUrl(null)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Secure PDF iFrame Container */}
@@ -1148,7 +1261,7 @@ export const CourseLMSPage = () => {
                 />
                 
                 <iframe
-                  src={`${pdfViewerUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                  src={getEmbeddablePdfUrl(pdfViewerUrl || '').embedUrl}
                   title="PDF Document"
                   className="w-full h-full rounded-2xl border-0 bg-slate-900 z-0"
                   style={{

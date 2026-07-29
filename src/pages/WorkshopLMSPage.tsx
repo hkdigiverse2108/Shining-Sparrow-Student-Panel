@@ -3,9 +3,105 @@ import { useParams, Link } from 'react-router-dom';
 import { useWorkshop } from '../hooks/useWorkshops';
 import { useWorkshopCurriculums, useCompleteWorkshopCurriculum, useWorkshopProgress } from '../hooks/useLMS';
 import { Loader } from '../components/Loader';
-import { Play, Download, FileText, ArrowLeft, Video, Maximize2, Minimize2, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Play, Download, FileText, ArrowLeft, Video, Maximize2, Minimize2, CheckCircle2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
+
+// Helper to format attachment URLs (handles relative backend paths, missing protocols, Google Drive URLs)
+const formatAttachmentUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  let trimmed = url.trim();
+  
+  if (trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  
+  if (trimmed.startsWith('drive.google.com') || trimmed.startsWith('docs.google.com') || trimmed.startsWith('dropbox.com')) {
+    return `https://${trimmed}`;
+  }
+  
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5666').replace(/\/$/, '');
+  const relativePath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${baseUrl}${relativePath}`;
+};
+
+// Helper for PDF embedding / viewing
+const getEmbeddablePdfUrl = (url: string): { isFolder: boolean; embedUrl: string } => {
+  if (!url) return { isFolder: false, embedUrl: '' };
+  
+  if (url.includes('drive.google.com/drive/folders/')) {
+    return { isFolder: true, embedUrl: url };
+  }
+  
+  if (url.includes('drive.google.com/file/d/')) {
+    const embedUrl = url.replace(/\/view(\?.*)?$/, '/preview');
+    return { isFolder: false, embedUrl };
+  }
+
+  if (url.startsWith('data:')) {
+    try {
+      const parts = url.split(";base64,");
+      const contentType = parts[0].replace("data:", "") || "application/pdf";
+      const raw = window.atob(parts[1] || parts[0]);
+      const uInt8Array = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+      const blob = new Blob([uInt8Array], { type: contentType });
+      return { isFolder: false, embedUrl: URL.createObjectURL(blob) };
+    } catch {
+      return { isFolder: false, embedUrl: url };
+    }
+  }
+  
+  return { isFolder: false, embedUrl: url.includes('#') ? url : `${url}#toolbar=0&navpanes=0&scrollbar=0` };
+};
+
+// Helper to handle safe download / open without triggering about:blank#blocked on data URLs
+const handleDownloadAttachment = (url: string | null | undefined, filename = "attachment.pdf") => {
+  if (!url) return;
+  const formattedUrl = formatAttachmentUrl(url);
+
+  if (formattedUrl.startsWith("data:")) {
+    try {
+      const parts = formattedUrl.split(";base64,");
+      const contentType = parts[0].replace("data:", "") || "application/pdf";
+      const base64Data = parts[1] || parts[0];
+      const raw = window.atob(base64Data);
+      const rawLength = raw.length;
+      const uInt8Array = new Uint8Array(rawLength);
+
+      for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+
+      const blob = new Blob([uInt8Array], { type: contentType });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (e) {
+      console.error("Failed to download data URL:", e);
+      const link = document.createElement("a");
+      link.href = formattedUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } else {
+    window.open(formattedUrl, "_blank", "noopener,noreferrer");
+  }
+};
 
 // Detect the type of link: 'youtube' | 'external-live' | 'vimeo' | 'twitch' | 'direct-video'
 const getLinkType = (url: string | null): 'youtube' | 'external-live' | 'vimeo' | 'twitch' | 'direct-video' => {
@@ -152,6 +248,8 @@ export const WorkshopLMSPage = () => {
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const completeMutation = useCompleteWorkshopCurriculum();
+
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
 
   // Active Video State
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
@@ -330,7 +428,7 @@ export const WorkshopLMSPage = () => {
                   </p>
                 </div>
 
-                {/* Download Attachment if exists */}
+                {/* Attachment Section if exists */}
                 {currentAttachment && (
                   <div className="ui-card p-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -338,18 +436,34 @@ export const WorkshopLMSPage = () => {
                         <FileText size={18} />
                       </div>
                       <div className="space-y-0.5">
-                        <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Workshop Materials</span>
-                        <span className="block text-[10px] text-slate-400">Download worksheets & study notes</span>
+                        <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Workshop Materials & PDF</span>
+                        <span className="block text-[10px] text-slate-400">View or download session worksheets & study notes</span>
                       </div>
                     </div>
-                    <a
-                      href={currentAttachment}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ui-button-outline p-2"
-                    >
-                      <Download size={16} />
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const formatted = formatAttachmentUrl(currentAttachment);
+                          const { isFolder } = getEmbeddablePdfUrl(formatted);
+                          if (isFolder) {
+                            window.open(formatted, '_blank');
+                          } else {
+                            setPdfViewerUrl(formatted);
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-white dark:bg-slate-800 border dark:border-slate-700 text-brand-primary dark:text-brand-secondary hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-sm cursor-pointer"
+                        title="View PDF / Attachment"
+                      >
+                        <Maximize2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDownloadAttachment(currentAttachment)}
+                        className="ui-button-outline p-2 cursor-pointer"
+                        title="Open / Download Link"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -471,6 +585,65 @@ export const WorkshopLMSPage = () => {
         </div>
 
       </div>
+
+      {/* Secure PDF Viewer Modal */}
+      <AnimatePresence>
+        {pdfViewerUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setPdfViewerUrl(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden relative shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white leading-tight">Workshop Attachment PDF</h3>
+                    <p className="text-[10px] text-slate-400">View session material document</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDownloadAttachment(pdfViewerUrl)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer"
+                    title="Open / Download Document"
+                  >
+                    <Download size={16} />
+                  </button>
+                  <button
+                    onClick={() => setPdfViewerUrl(null)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Secure PDF iFrame Container */}
+              <div className="grow bg-slate-950 p-2 relative flex items-center justify-center">
+                <iframe
+                  src={getEmbeddablePdfUrl(pdfViewerUrl).embedUrl}
+                  title="PDF Document"
+                  className="w-full h-full rounded-2xl border-0 bg-slate-900 z-0"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
