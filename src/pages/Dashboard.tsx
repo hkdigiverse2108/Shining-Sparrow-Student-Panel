@@ -334,8 +334,12 @@ export const Dashboard = () => {
   const availableCourses = allCourses.filter((course: CourseItem) => !purchasedCourseIds.has(course._id));
   const availableWorkshops = allWorkshops.filter((workshop: WorkshopItem) => !purchasedWorkshopIds.has(workshop._id));
 
-  // Loading skeleton helpers
-  const showSkeleton = myCoursesLoading || myWorkshopsLoading || allCoursesLoading || allWorkshopsLoading || (activeTab === 'blogs' && blogsLoading);
+  // Loading skeleton helpers (only check loading state for the current active tab)
+  const showSkeleton = 
+    activeTab === 'classroom' ? (myCoursesLoading || myWorkshopsLoading) :
+    activeTab === 'buy-courses' ? allCoursesLoading :
+    activeTab === 'workshops' ? allWorkshopsLoading :
+    activeTab === 'blogs' ? blogsLoading : false;
 
   // Render vertical indicator lines for checklists (matches the checklist design in UI)
   const renderVisualChecklist = (completed: number, total: number) => {
@@ -432,18 +436,32 @@ export const Dashboard = () => {
             {/* VIEW A: CLASSROOM TAB */}
             {activeTab === 'classroom' && (
               <div className="space-y-8">
-                {enrolledCourses.length === 0 && enrolledWorkshops.length === 0 ? (
+                {((classroomFilter === 'all' && enrolledCourses.length === 0 && enrolledWorkshops.length === 0) ||
+                  (classroomFilter === 'courses' && enrolledCourses.length === 0) ||
+                  (classroomFilter === 'workshops' && enrolledWorkshops.length === 0)) ? (
                   <div className="text-center py-16 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 space-y-4">
-                    <span className="text-4xl block">📚</span>
-                    <h3 className="font-display font-extrabold text-slate-800 dark:text-slate-200">No active enrollments</h3>
+                    <span className="text-4xl block">
+                      {classroomFilter === 'workshops' ? '🎟️' : classroomFilter === 'courses' ? '📚' : '🎓'}
+                    </span>
+                    <h3 className="font-display font-extrabold text-slate-800 dark:text-slate-200">
+                      {classroomFilter === 'workshops'
+                        ? 'No enrolled workshops yet'
+                        : classroomFilter === 'courses'
+                        ? 'No enrolled courses yet'
+                        : 'No active enrollments'}
+                    </h3>
                     <p className="text-xs text-slate-400 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-                      You haven't unlocked any courses or workshops yet. Head over to the course catalog using the sidebar to get started!
+                      {classroomFilter === 'workshops'
+                        ? "You haven't unlocked any live workshops yet. Check out our workshop catalog to get started!"
+                        : classroomFilter === 'courses'
+                        ? "You haven't unlocked any courses yet. Browse our course catalog to get started!"
+                        : "You haven't unlocked any courses or workshops yet. Head over to the catalog to get started!"}
                     </p>
                     <Link
-                      to="?tab=buy-courses"
+                      to={classroomFilter === 'workshops' ? '?tab=workshops' : '?tab=buy-courses'}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white font-bold rounded-xl text-xs shadow-md dark:shadow-none hover:shadow-lg transition-all"
                     >
-                      Browse Catalog <ArrowRight size={14} />
+                      {classroomFilter === 'workshops' ? 'Browse Workshops Catalog' : 'Browse Course Catalog'} <ArrowRight size={14} />
                     </Link>
                   </div>
                 ) : (
