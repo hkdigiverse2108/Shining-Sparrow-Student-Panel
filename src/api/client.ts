@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Get base URL from environment or default to local backend port 5555
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.29.26:5555';
+// Get base URL from environment or default to production backend
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.shiningsparrow.com';
 
 const client = axios.create({
   baseURL: API_URL,
