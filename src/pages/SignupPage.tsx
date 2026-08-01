@@ -262,14 +262,10 @@ export const SignupPage = () => {
       });
 
       if (response && response.status === 200) {
-        const hasWelcomed = localStorage.getItem('shining_sparrow_welcomed');
-        if (!hasWelcomed) {
-          setPendingOTR(response.data.otr);
-          setShowWelcome(true);
-        } else {
-          setOtrCode(response.data.otr);
-        }
-        showToast('Registration successful! Save your OTR Code.', 'success');
+        showToast('Registration successful! Your OTR code and password have been sent to your email. Redirecting to login...', 'success');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2500);
       } else {
         showToast(response.message || 'Signup failed', 'error');
       }
@@ -505,7 +501,10 @@ export const SignupPage = () => {
                   Registration Successful!
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Your unique **One Time Registration (OTR) Code** has been generated. You will need this code along with your phone number to login.
+                  Your <strong>OTR code</strong> and <strong>password</strong> have been sent to your registered email address. Please check your inbox (and spam folder) to login.
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Below is your OTR code for quick reference:
                 </p>
               </div>
 
@@ -527,7 +526,7 @@ export const SignupPage = () => {
               </div>
 
               <div className="bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-900/30 rounded-xl p-3 text-xs text-orange-850 dark:text-orange-300 leading-relaxed">
-                ⚠️ **CRITICAL**: Please write down or screenshot this code! You will not be able to retrieve it easily if lost.
+                <strong>Important:</strong> Your password has been sent to your email. Check your inbox and spam folder to find it. Save this OTR code safely!
               </div>
 
               <button
