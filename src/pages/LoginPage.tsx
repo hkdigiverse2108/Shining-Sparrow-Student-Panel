@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
-import { Phone, Key, HelpCircle, Mail, Lock, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Phone, Key, HelpCircle, Mail, Lock, ShieldCheck, Info, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
 import authService from '../services/auth.service';
 
@@ -19,9 +19,27 @@ export const LoginPage = () => {
   const [showForgotOtr, setShowForgotOtr] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [submittingForgot, setSubmittingForgot] = useState(false);
+  const [showAutoFillMsg, setShowAutoFillMsg] = useState(false);
 
   // Get the redirect path from location state or default to dashboard
   const from = (location.state as any)?.from?.pathname || '/dashboard';
+
+  // Auto-fill from URL query params (website enrollment) or state (signup)
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const signupState = location.state as any;
+
+    const fromEnroll = queryParams.get('fromEnroll') === 'true';
+    const fromSignup = signupState?.fromSignup;
+    const autoPhone = signupState?.phoneNumber || queryParams.get('phoneNumber') || '';
+    const autoOtr = signupState?.otr || queryParams.get('otr') || '';
+
+    if (autoPhone) setPhoneNumber(autoPhone);
+    if (autoOtr) setOtr(autoOtr);
+    if ((fromEnroll || fromSignup) && autoOtr) {
+      setShowAutoFillMsg(true);
+    }
+  }, [location.search, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +116,36 @@ export const LoginPage = () => {
               : 'Sign in with your phone number and OTR'}
           </p>
         </div>
+
+        {/* Auto-fill info banner from signup */}
+        <AnimatePresence>
+          {showAutoFillMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="flex items-start gap-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 rounded-xl">
+                <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm font-semibold text-blue-800 dark:text-blue-300">
+                    This is a one-time auto-fill from your registration.
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Please save your OTR code safely. You will need it to login next time.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAutoFillMsg(false)}
+                  className="p-1 rounded-full text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors shrink-0"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form */}
         {showForgotOtr ? (

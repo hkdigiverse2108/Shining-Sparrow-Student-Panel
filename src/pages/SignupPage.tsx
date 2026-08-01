@@ -262,9 +262,15 @@ export const SignupPage = () => {
       });
 
       if (response && response.status === 200) {
-        showToast('Registration successful! Your OTR code and password have been sent to your email. Redirecting to login...', 'success');
+        showToast('Registration successful! Your Phone Number and OTR have been sent to your email. Redirecting to login...', 'success');
         setTimeout(() => {
-          navigate('/login');
+          navigate('/login', {
+            state: {
+              fromSignup: true,
+              phoneNumber: phoneNumber,
+              otr: response.data.otr,
+            }
+          });
         }, 2500);
       } else {
         showToast(response.message || 'Signup failed', 'error');
