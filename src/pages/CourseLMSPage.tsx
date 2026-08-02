@@ -280,9 +280,11 @@ export const CourseLMSPage = () => {
           break;
         }
       }
-      if (!firstUnlockedId && course.courseCurriculumIds[0]?.courseLessonsAssigned?.length > 0) {
-        firstUnlockedId = course.courseCurriculumIds[0].courseLessonsAssigned[0]._id;
-        initialExpanded[course.courseCurriculumIds[0]._id] = true;
+      const firstCurr = course.courseCurriculumIds[0];
+      const firstAssigned = firstCurr?.courseLessonsAssigned;
+      if (!firstUnlockedId && firstCurr && firstAssigned && firstAssigned.length > 0) {
+        firstUnlockedId = firstAssigned[0]._id;
+        initialExpanded[firstCurr._id] = true;
       }
     } else if (course.courseLessonIds && course.courseLessonIds.length > 0) {
       const unlockedLesson = course.courseLessonIds.find((l: Lesson) => l.isUnlocked);
