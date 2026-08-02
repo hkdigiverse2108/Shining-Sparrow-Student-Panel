@@ -54,12 +54,15 @@ client.interceptors.request.use(
   }
 );
 
-// Optional response interceptor to handle global errors (like 401 Unauthorized)
+// Optional response interceptor to handle global errors (like 401 Unauthorized or 410 Token Expired/Account Blocked)
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      handleLogout();
+    if (error.response && (error.response.status === 401 || error.response.status === 410)) {
+      // Avoid logging out if it's a specific non-session 403/410, but 401 is session invalidation
+      if (error.response.status === 401) {
+        handleLogout();
+      }
     }
     return Promise.reject(error);
   }

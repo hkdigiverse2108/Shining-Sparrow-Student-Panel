@@ -21,6 +21,7 @@ import { ChatPage } from './pages/ChatPage';
 import { PaymentHistoryPage } from './pages/PaymentHistoryPage';
 import { SupportPage } from './pages/SupportPage';
 import { GalleryPage } from './pages/GalleryPage';
+import { FeedbackPage } from './pages/FeedbackPage';
 
 // Context Providers
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -250,7 +251,13 @@ const AppLayout = () => {
                 path="/" 
                 element={
                   isAuthenticated 
-                    ? <Navigate to="/dashboard" replace /> 
+                    ? <Navigate to={
+                        new URLSearchParams(location.search).get('redirectLms')
+                          ? `/lms/${new URLSearchParams(location.search).get('redirectLms')}`
+                          : new URLSearchParams(location.search).get('redirectWorkshopLms')
+                          ? `/workshop-lms/${new URLSearchParams(location.search).get('redirectWorkshopLms')}`
+                          : "/dashboard"
+                      } replace /> 
                     : <PageTransition><LoginPage /></PageTransition>
                 } 
               />
@@ -258,7 +265,13 @@ const AppLayout = () => {
                 path="/login" 
                 element={
                   isAuthenticated 
-                    ? <Navigate to="/dashboard" replace /> 
+                    ? <Navigate to={
+                        new URLSearchParams(location.search).get('redirectLms')
+                          ? `/lms/${new URLSearchParams(location.search).get('redirectLms')}`
+                          : new URLSearchParams(location.search).get('redirectWorkshopLms')
+                          ? `/workshop-lms/${new URLSearchParams(location.search).get('redirectWorkshopLms')}`
+                          : "/dashboard"
+                      } replace /> 
                     : <PageTransition><LoginPage /></PageTransition>
                 } 
               />
@@ -378,6 +391,16 @@ const AppLayout = () => {
                   <AuthGuard>
                     <PageTransition>
                       <GalleryPage />
+                    </PageTransition>
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/feedback" 
+                element={
+                  <AuthGuard>
+                    <PageTransition>
+                      <FeedbackPage />
                     </PageTransition>
                   </AuthGuard>
                 } 

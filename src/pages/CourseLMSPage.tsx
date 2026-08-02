@@ -245,7 +245,7 @@ export const CourseLMSPage = () => {
   };
 
   // Queries
-  const { data: courseRes, isLoading: courseLoading } = useCourse(courseId || '');
+  const { data: courseRes, isLoading: courseLoading, error: courseError } = useCourse(courseId || '');
   const course = courseRes?.data as Course | undefined;
 
   // Selected Lesson State
@@ -280,10 +280,16 @@ export const CourseLMSPage = () => {
           break;
         }
       }
+      if (!firstUnlockedId && course.courseCurriculumIds[0]?.courseLessonsAssigned?.length > 0) {
+        firstUnlockedId = course.courseCurriculumIds[0].courseLessonsAssigned[0]._id;
+        initialExpanded[course.courseCurriculumIds[0]._id] = true;
+      }
     } else if (course.courseLessonIds && course.courseLessonIds.length > 0) {
       const unlockedLesson = course.courseLessonIds.find((l: Lesson) => l.isUnlocked);
       if (unlockedLesson) {
         firstUnlockedId = unlockedLesson._id;
+      } else {
+        firstUnlockedId = course.courseLessonIds[0]._id;
       }
     }
 
@@ -441,6 +447,36 @@ export const CourseLMSPage = () => {
 
   if (courseLoading) {
     return <Loader />;
+  }
+
+  if (courseError) {
+    const errorMsg = (courseError as any)?.response?.data?.message || (courseError as any)?.message || '';
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="w-20 h-20 bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-3xl flex items-center justify-center mx-auto text-3xl shadow-lg">
+          🔒
+        </div>
+        <div className="space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+            ⚠️ Access Suspended
+          </span>
+          <h2 className="font-display font-extrabold text-2xl text-slate-900 dark:text-white pt-1">
+            Access Suspended Due to Pending Payment
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+            {errorMsg || 'Your access to this course has been suspended due to pending payment. Please complete your payment or contact support to unlock your access.'}
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link to="/support" className="ui-button-primary px-6 py-3 text-xs">
+            Contact Support Team
+          </Link>
+          <Link to="/dashboard" className="ui-button-outline px-6 py-3 text-xs">
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!course) {

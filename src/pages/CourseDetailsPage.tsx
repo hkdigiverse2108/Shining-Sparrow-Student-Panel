@@ -346,7 +346,11 @@ export const CourseDetailsPage = () => {
           });
         }
         showToast('Enrollment successful!', 'success');
-        navigate('/dashboard');
+        if (isWorkshop) {
+          navigate(`/workshop-lms/${item._id}`);
+        } else {
+          navigate(`/lms/${item._id}`);
+        }
       } catch (err) {
         const error = err as { response?: { data?: { message?: string } } };
         showToast(error.response?.data?.message || 'Enrollment failed. Contact support.', 'error');
@@ -396,7 +400,11 @@ export const CourseDetailsPage = () => {
               });
             }
             showToast('Enrollment successful!', 'success');
-            navigate('/dashboard');
+            if (isWorkshop) {
+              navigate(`/workshop-lms/${item._id}`);
+            } else {
+              navigate(`/lms/${item._id}`);
+            }
           } catch (err) {
             const error = err as { response?: { data?: { message?: string } } };
             showToast(error.response?.data?.message || 'Verification failed. Contact support.', 'error');
@@ -428,6 +436,13 @@ export const CourseDetailsPage = () => {
       navigate('/login');
       return;
     }
+
+    // If item price is ₹0, bypass checkout summary popup and directly enroll
+    if (price === 0) {
+      handleCheckout();
+      return;
+    }
+
     setShowCheckoutModal(true);
   };
 
@@ -549,7 +564,7 @@ export const CourseDetailsPage = () => {
                       {pdfUrl && (
                         <div className="pt-4 border-t border-orange-100/10 dark:border-slate-800/40">
                           <a
-                            href={pdfUrl}
+                            href={(pdfUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="ui-button-outline px-5 py-2.5 text-xs flex items-center gap-2"

@@ -8,7 +8,7 @@ import { LogoutConfirmationModal } from './LogoutConfirmationModal';
 import { 
   BookOpen, ShoppingBag, Tv, Newspaper, User, LogOut, Sun, Moon, 
   Menu, X, Copy, Check, ChevronRight, ChevronLeft, MessageSquare,
-  CreditCard, HelpCircle, Image
+  CreditCard, HelpCircle, Image, Star
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { handleImageError, getAvatarFallback, getImageUrl } from '../utils/fallbacks';
@@ -111,6 +111,12 @@ export const Sidebar = () => {
       label: 'Payment History',
       icon: CreditCard,
       path: '/payments/history',
+      search: '',
+    },
+    {
+      label: 'Reviews & Feedback',
+      icon: Star,
+      path: '/feedback',
       search: '',
     },
     {

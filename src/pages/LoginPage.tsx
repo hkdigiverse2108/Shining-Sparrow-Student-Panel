@@ -21,12 +21,17 @@ export const LoginPage = () => {
   const [submittingForgot, setSubmittingForgot] = useState(false);
   const [showAutoFillMsg, setShowAutoFillMsg] = useState(false);
 
-  // Get the redirect path from location state or default to dashboard
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const queryParams = new URLSearchParams(location.search);
+  const redirectLms = queryParams.get('redirectLms');
+  const redirectWorkshopLms = queryParams.get('redirectWorkshopLms');
+  const from = redirectLms 
+    ? `/lms/${redirectLms}` 
+    : redirectWorkshopLms 
+    ? `/workshop-lms/${redirectWorkshopLms}` 
+    : ((location.state as any)?.from?.pathname || '/dashboard');
 
   // Auto-fill from URL query params (website enrollment) or state (signup)
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
     const signupState = location.state as any;
 
     const fromEnroll = queryParams.get('fromEnroll') === 'true';

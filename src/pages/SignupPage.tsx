@@ -215,7 +215,6 @@ export const SignupPage = () => {
   const [district, setDistrict] = useState('Surat');
   const [std, setStd] = useState('5th Standard');
   const [reachFrom, setReachFrom] = useState('Instagram');
-  const [schoolName, setSchoolName] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   // UI state
@@ -257,7 +256,6 @@ export const SignupPage = () => {
         district,
         std,
         reachFrom,
-        schoolName,
         agreeTerms,
       });
 
@@ -415,24 +413,6 @@ export const SignupPage = () => {
               placeholder="Select or type district"
               required
             />
-          </div>
-
-          {/* School Name */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-500">
-              School Name
-              <span className="ml-1.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400 dark:text-slate-600">(optional)</span>
-            </label>
-            <div className="relative">
-              <School className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                type="text"
-                value={schoolName}
-                onChange={(e) => setSchoolName(e.target.value)}
-                placeholder="Enter your school name"
-                className="ui-input pl-11 font-semibold"
-              />
-            </div>
           </div>
 
           {/* Reach Source */}

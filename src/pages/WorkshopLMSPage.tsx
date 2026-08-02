@@ -237,7 +237,7 @@ export const WorkshopLMSPage = () => {
   const { data: workshopRes, isLoading: workshopLoading } = useWorkshop(workshopId || '');
   const workshop = workshopRes?.data;
 
-  const { data: curriculumsRes, isLoading: curriculumsLoading } = useWorkshopCurriculums(workshopId || '');
+  const { data: curriculumsRes, isLoading: curriculumsLoading, error: curriculumsError } = useWorkshopCurriculums(workshopId || '');
   const rawCurriculums = curriculumsRes?.data?.workshop_curriculum_data;
   const curriculums = React.useMemo(() => rawCurriculums || [], [rawCurriculums]) as WorkshopCurriculum[];
 
@@ -268,6 +268,36 @@ export const WorkshopLMSPage = () => {
 
   if (workshopLoading || curriculumsLoading) {
     return <Loader />;
+  }
+
+  if (curriculumsError) {
+    const errorMsg = (curriculumsError as any)?.response?.data?.message || (curriculumsError as any)?.message || '';
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="w-20 h-20 bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-3xl flex items-center justify-center mx-auto text-3xl shadow-lg">
+          🔒
+        </div>
+        <div className="space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+            ⚠️ Access Suspended
+          </span>
+          <h2 className="font-display font-extrabold text-2xl text-slate-900 dark:text-white pt-1">
+            Access Suspended Due to Pending Payment
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+            {errorMsg || 'Your access to this workshop has been suspended due to pending payment. Please complete your payment or contact support to unlock your access.'}
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link to="/support" className="ui-button-primary px-6 py-3 text-xs">
+            Contact Support Team
+          </Link>
+          <Link to="/dashboard" className="ui-button-outline px-6 py-3 text-xs">
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!workshop) {
@@ -505,11 +535,22 @@ export const WorkshopLMSPage = () => {
               </div>
             </div>
           ) : (
-            <div className="aspect-video w-full rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-center border dark:border-slate-800 shadow-sm">
-              <div className="space-y-2 p-6 max-w-sm">
-                <Video size={36} className="text-slate-300 mx-auto animate-pulse" />
-                <h3 className="font-bold text-slate-700 dark:text-slate-300">Classroom Stream Empty</h3>
-                <p className="text-xs text-slate-400 leading-normal">This workshop doesn't contain any video lectures yet. Check back soon!</p>
+            <div className="aspect-video w-full rounded-3xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-center border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+              <div className="space-y-3.5 max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-3xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center mx-auto shadow-sm">
+                  <Video size={28} />
+                </div>
+                <div className="space-y-1.5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                    ✓ Enrollment Confirmed & Active
+                  </span>
+                  <h3 className="font-display font-extrabold text-lg text-slate-900 dark:text-white pt-1">
+                    No Video Lectures Uploaded Yet
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    The admin/instructor has not uploaded video lectures for this workshop yet. Once the admin adds curriculum videos in Admin Panel, they will appear here automatically.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -577,8 +618,9 @@ export const WorkshopLMSPage = () => {
                 );
               })
             ) : (
-              <div className="ui-card border border-dashed text-slate-400 text-center py-10 text-xs">
-                No syllabus details found.
+              <div className="ui-card border border-dashed border-slate-300 dark:border-slate-800 text-center py-8 px-4 space-y-1 rounded-2xl">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Lectures Listed Yet</p>
+                <p className="text-[10px] text-slate-400">Curriculum is being prepared by the instructor.</p>
               </div>
             )}
           </div>
