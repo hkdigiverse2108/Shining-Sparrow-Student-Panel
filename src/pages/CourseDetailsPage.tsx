@@ -459,6 +459,15 @@ export const CourseDetailsPage = () => {
 
         <motion.div variants={pageChildVariants} className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center space-y-5">
           <div className="flex flex-wrap items-center justify-center gap-2.5 text-xs font-semibold text-slate-400">
+            {isPurchased ? (
+              <span className="px-3.5 py-1.5 bg-emerald-500/20 backdrop-blur-md rounded-xl text-emerald-300 font-extrabold flex items-center gap-1.5 border border-emerald-500/30 shadow-xs">
+                🔓 Access Unlocked
+              </span>
+            ) : (
+              <span className="px-3.5 py-1.5 bg-amber-500/20 backdrop-blur-md rounded-xl text-amber-300 font-extrabold flex items-center gap-1.5 border border-amber-500/30 shadow-xs">
+                🔒 Access Locked
+              </span>
+            )}
             <span className="px-3.5 py-1.5 bg-white/10 backdrop-blur-md rounded-xl text-brand-secondary flex items-center gap-1.5 border border-white/5 shadow-xs">
               {isWorkshop ? '🎥 Interactive Live Stream' : '📚 Structured Curriculum'}
             </span>

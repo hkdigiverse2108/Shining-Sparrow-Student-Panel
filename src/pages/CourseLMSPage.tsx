@@ -1000,29 +1000,29 @@ export const CourseLMSPage = () => {
                           allowFullScreen
                         ></iframe>
                         
-                        {/* Top bar visual shield + branding */}
+                        {/* Top bar visual shield + branding (scoped to top-left title area ONLY, leaving top-right Settings gear ⚙️ completely clean and unblurred) */}
                         <div 
-                          className="absolute top-0 left-0 right-0 h-14 bg-linear-to-b from-slate-950/90 to-slate-950/20 backdrop-blur-[2px] z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! group-hover:backdrop-blur-[2px]! transition-all duration-500"
+                          className="absolute top-0 left-0 w-[60%] h-14 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent z-10 flex items-center px-6 pointer-events-none select-none animate-top-bar-fade group-hover:opacity-100! transition-all duration-500 rounded-br-2xl"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></span>
-                            <span className="text-sm font-bold text-white tracking-wide truncate max-w-70 sm:max-w-md">
+                            <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse shrink-0"></span>
+                            <span className="text-sm font-bold text-white tracking-wide truncate max-w-50 sm:max-w-md">
                               {activeLesson.title || 'Course Video'}
                             </span>
                           </div>
                         </div>
                         
-                        {/* Bottom-right visual shield + branding */}
+                        {/* Bottom-right visual shield + branding (covers YouTube logo) */}
                         <div className="absolute bottom-3 right-3 z-10 pointer-events-none select-none">
-                          <div className="px-3 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-orange-200">
+                          <div className="px-3 py-1.5 bg-slate-950/90 backdrop-blur-md rounded-full border border-white/10 shadow-lg text-[9px] font-extrabold uppercase tracking-widest text-orange-200">
                             Shining Sparrow
                           </div>
                         </div>
 
-                        {/* Invisible pointer-events overlays to capture clicks in key redirect regions */}
-                        <div className="absolute top-0 left-0 right-0 h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
-                        <div className="absolute bottom-0 left-0 w-[20%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
-                        <div className="absolute bottom-0 right-0 w-[38%] h-[16%] z-10 bg-transparent cursor-default pointer-events-auto" />
+                        {/* Invisible click shields (top-left title & bottom YouTube logo protected; top-right settings gear ⚙️ is 100% clear & clickable) */}
+                        <div className="absolute top-0 left-0 w-[60%] h-14 z-10 bg-transparent cursor-default pointer-events-auto" />
+                        <div className="absolute bottom-0 left-0 w-[20%] h-14 z-10 bg-transparent cursor-default pointer-events-auto" />
+                        <div className="absolute bottom-0 right-0 w-[38%] h-14 z-10 bg-transparent cursor-default pointer-events-auto" />
 
                         {/* Custom Fullscreen Toggle Button */}
                         <button

@@ -8,7 +8,7 @@ import { useBlogs } from '../hooks/useBlogs';
 import { useHeroBanners } from '../hooks/useSettings';
 import { CardSkeleton } from '../components/Loader';
 import { 
-  Video, Award, Clock, ArrowRight, Lock, Flame, ArrowUpRight, Calendar, BookOpen, ChevronLeft, ChevronRight
+  Video, Award, Clock, ArrowRight, Lock, Flame, ArrowUpRight, Calendar, BookOpen, ChevronLeft, ChevronRight, Play
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageChildVariants } from '../components/PageTransition';
@@ -331,8 +331,18 @@ export const Dashboard = () => {
   const purchasedCourseIds = new Set(enrolledCourses.map((ec: EnrolledCourse) => ec.courseId?._id));
   const purchasedWorkshopIds = new Set(enrolledWorkshops.map((ew: EnrolledWorkshop) => ew.workshopId?._id));
 
-  const availableCourses = allCourses.filter((course: CourseItem) => !purchasedCourseIds.has(course._id));
-  const availableWorkshops = allWorkshops.filter((workshop: WorkshopItem) => !purchasedWorkshopIds.has(workshop._id));
+  // Sort catalog items so Unlocked/Purchased programs ALWAYS appear FIRST at the top!
+  const sortedAllCourses = [...allCourses].sort((a: CourseItem, b: CourseItem) => {
+    const aPurchased = purchasedCourseIds.has(a._id) ? 1 : 0;
+    const bPurchased = purchasedCourseIds.has(b._id) ? 1 : 0;
+    return bPurchased - aPurchased;
+  });
+
+  const sortedAllWorkshops = [...allWorkshops].sort((a: WorkshopItem, b: WorkshopItem) => {
+    const aPurchased = purchasedWorkshopIds.has(a._id) ? 1 : 0;
+    const bPurchased = purchasedWorkshopIds.has(b._id) ? 1 : 0;
+    return bPurchased - aPurchased;
+  });
 
   // Loading skeleton helpers (only check loading state for the current active tab)
   const showSkeleton = 
@@ -579,7 +589,7 @@ export const Dashboard = () => {
                                     </button>
                                   ) : (
                                     <Link
-                                      to={`/courses/${course._id}?from=classroom`}
+                                      to={`/lms/${course._id}`}
                                       className="ui-button-primary px-4.5 py-2"
                                     >
                                       Enter Classroom
@@ -700,7 +710,7 @@ export const Dashboard = () => {
               </div>
             )}
 
-            {/* VIEW B: DIRECT COURSE RECOMMENDATIONS CATALOG */}
+            {/* VIEW B: STORE / BUY COURSES CATALOG */}
             {activeTab === 'buy-courses' && (
               <div className="space-y-6">
                 <div className="flex items-start justify-between gap-4">
@@ -709,103 +719,131 @@ export const Dashboard = () => {
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary">
                         <BookOpen size={14} />
                       </span>
-                      Courses Available for Instant Purchase
+                      Explore All Courses
                     </h3>
                     <p className="text-xs text-slate-400 dark:text-slate-400">
-                      Unlock structural abacus and finger math courses with Secure Online Checkout.
+                      Master finger calculation, speed math, and abacus with structured levels.
                     </p>
                   </div>
                   <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
-                    {availableCourses.length} Course{availableCourses.length !== 1 ? 's' : ''}
+                    {allCourses.length} Program{allCourses.length !== 1 ? 's' : ''}
                   </span>
                 </div>
 
-                {availableCourses.length > 0 ? (
+                {sortedAllCourses.length > 0 ? (
                   <motion.div
                     variants={cardContainerVariants}
                     initial="initial"
                     animate="animate"
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
-                    {availableCourses.map((course: CourseItem) => (
-                      <motion.div
-                        key={course._id}
-                        variants={cardItemVariants}
-                        className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
-                      >
-                        <div className="space-y-4">
-                          <div className="aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
-                            <img
-                              src={getImageUrl(course.image) || FALLBACK_COURSE_IMAGE}
-                              alt={course.name}
-                              className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
-                              onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
-                            />
-                            {/* Gradient overlay for better badge readability */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+                    {sortedAllCourses.map((course: CourseItem) => {
+                      const isPurchased = purchasedCourseIds.has(course._id);
+                      return (
+                        <motion.div
+                          key={course._id}
+                          variants={cardItemVariants}
+                          className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
+                        >
+                          <div className="space-y-4">
+                            <Link to={`/courses/${course._id}`} className="block aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative group/img">
+                              <img
+                                src={getImageUrl(course.image) || FALLBACK_COURSE_IMAGE}
+                                alt={course.name}
+                                className="w-full h-full object-contain group-hover/img:scale-110 transition-transform duration-500 ease-out"
+                                onError={(e) => handleImageError(e, FALLBACK_COURSE_IMAGE)}
+                              />
+                              {/* Gradient overlay for better badge readability */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
 
-                            {/* Price badge - top right */}
-                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-primary to-orange-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-primary/25 backdrop-blur-sm flex items-center gap-1.5">
-                              {(course.mrpPrice || 0) > 0 && (course.price || 0) > (course.mrpPrice || 0) ? (
-                                <>
-                                  <span className="line-through opacity-70 font-semibold">₹{course.price}</span>
-                                  <span>₹{course.mrpPrice}</span>
-                                </>
+                              {/* Price or Unlocked badge - top right */}
+                              {isPurchased ? (
+                                <div className="absolute top-3 right-3 px-3 py-1 bg-emerald-500 text-white rounded-xl text-[11px] font-black shadow-lg backdrop-blur-sm flex items-center gap-1">
+                                  🔓 Unlocked
+                                </div>
                               ) : (
-                                <span>{course.price === 0 ? 'Free' : `₹${course.price || 0}`}</span>
+                                <div className="absolute top-3 right-3 px-3 py-1 bg-slate-900/80 text-white rounded-xl text-[11px] font-black shadow-lg backdrop-blur-sm flex items-center gap-1.5 border border-white/10">
+                                  <Lock size={11} className="text-amber-400 shrink-0" />
+                                  {(course.mrpPrice || 0) > 0 && (course.price || 0) > (course.mrpPrice || 0) ? (
+                                    <>
+                                      <span className="line-through opacity-70 font-semibold">₹{course.price}</span>
+                                      <span>₹{course.mrpPrice}</span>
+                                    </>
+                                  ) : (
+                                    <span>{course.price === 0 ? 'Free' : `₹${course.price || 0}`}</span>
+                                  )}
+                                </div>
                               )}
-                            </div>
 
-                            {/* Level badge - bottom left */}
-                            <div className="absolute bottom-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-md">
-                              {course.level || 'All Levels'}
-                            </div>
-
-                            {/* Popular indicator - top left */}
-                            {(course.enrolledLearners || 250) > 200 && (
-                              <div className="absolute top-3 left-3 px-2.5 py-1 bg-amber-400 text-amber-900 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
-                                <Flame size={10} className="fill-current" /> Popular
+                              {/* Level badge - bottom left */}
+                              <div className="absolute bottom-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-md">
+                                {course.level || 'All Levels'}
                               </div>
+
+                              {/* Popular indicator - top left */}
+                              {(course.enrolledLearners || 250) > 200 && !isPurchased && (
+                                <div className="absolute top-3 left-3 px-2.5 py-1 bg-amber-400 text-amber-900 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
+                                  <Flame size={10} className="fill-current" /> Popular
+                                </div>
+                              )}
+                            </Link>
+
+                            <div className="space-y-2.5 px-1">
+                              <Link to={`/courses/${course._id}`} className="block font-display font-black text-[15px] text-slate-800 dark:text-white line-clamp-1 leading-snug hover:text-brand-primary transition-colors duration-300">
+                                {course.name}
+                              </Link>
+                              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-semibold">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-4 h-4 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-[8px]">👥</span>
+                                  {course.enrolledLearners || 250}+ Learners
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                  ★ {course.satisfactionRate || 98}%
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                                {stripHtml(course.description || '')}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-orange-100/20 dark:border-slate-800/30 px-1">
+                            {isPurchased ? (
+                              <div className="grid grid-cols-2 gap-2 w-full">
+                                <Link
+                                  to={`/courses/${course._id}`}
+                                  className="py-2.5 px-3 text-[11px] font-extrabold flex items-center justify-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all border border-slate-200 dark:border-slate-700 text-center"
+                                >
+                                  Details
+                                </Link>
+                                <Link
+                                  to={`/lms/${course._id}`}
+                                  className="py-2.5 px-3 text-[11px] font-black flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all shadow-md shadow-emerald-500/20 text-center"
+                                >
+                                  <Play size={12} className="fill-current shrink-0" />
+                                  Classroom
+                                </Link>
+                              </div>
+                            ) : (
+                              <Link
+                                to={`/courses/${course._id}`}
+                                className="group/btn relative w-full py-3 text-xs font-black flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-brand-primary dark:hover:bg-brand-primary text-slate-700 dark:text-slate-200 hover:text-white rounded-xl transition-all duration-300 border border-slate-200/60 dark:border-slate-700/50 hover:border-brand-primary hover:shadow-lg hover:shadow-brand-primary/20"
+                              >
+                                <Lock size={13} className="shrink-0 text-amber-500 group-hover/btn:hidden transition-all" />
+                                <ArrowRight size={13} className="shrink-0 hidden group-hover/btn:block transition-all" />
+                                View Details & Unlock
+                              </Link>
                             )}
                           </div>
-
-                          <div className="space-y-2.5 px-1">
-                            <h4 className="font-display font-black text-[15px] text-slate-800 dark:text-white line-clamp-1 leading-snug group-hover:text-brand-primary transition-colors duration-300">
-                              {course.name}
-                            </h4>
-                            <div className="flex items-center gap-3 text-[11px] text-slate-400 font-semibold">
-                              <span className="flex items-center gap-1">
-                                <span className="w-4 h-4 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-[8px]">👥</span>
-                                {course.enrolledLearners || 250}+ Learners
-                              </span>
-                              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                                ★ {course.satisfactionRate || 98}%
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                              {stripHtml(course.description || '')}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-orange-100/20 dark:border-slate-800/30 px-1">
-                          <Link
-                            to={`/courses/${course._id}`}
-                            className="group/btn relative w-full py-3 text-xs font-black flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-brand-primary dark:hover:bg-brand-primary text-slate-700 dark:text-slate-200 hover:text-white rounded-xl transition-all duration-300 border border-slate-200/60 dark:border-slate-700/50 hover:border-brand-primary hover:shadow-lg hover:shadow-brand-primary/20"
-                          >
-                            <Lock size={13} className="shrink-0 group-hover/btn:hidden transition-all" />
-                            <ArrowRight size={13} className="shrink-0 hidden group-hover/btn:block transition-all" />
-                            Unlock Curriculum
-                          </Link>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </motion.div>
                 ) : (
                   <div className="text-center py-16 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 space-y-3">
-                    <span className="text-4xl block">🎉</span>
-                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">You have unlocked all our courses!</p>
+                    <span className="text-4xl block">📚</span>
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No Courses Available</p>
                     <p className="text-xs text-slate-400">Check back later for new programs.</p>
                   </div>
                 )}
@@ -828,88 +866,116 @@ export const Dashboard = () => {
                     </p>
                   </div>
                   <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-brand-secondary bg-brand-secondary/10 px-3 py-1.5 rounded-full">
-                    {availableWorkshops.length} Workshop{availableWorkshops.length !== 1 ? 's' : ''}
+                    {allWorkshops.length} Workshop{allWorkshops.length !== 1 ? 's' : ''}
                   </span>
                 </div>
 
-                {availableWorkshops.length > 0 ? (
+                {sortedAllWorkshops.length > 0 ? (
                   <motion.div
                     variants={cardContainerVariants}
                     initial="initial"
                     animate="animate"
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
-                    {availableWorkshops.map((workshop: WorkshopItem) => (
-                      <motion.div
-                        key={workshop._id}
-                        variants={cardItemVariants}
-                        className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
-                      >
-                        <div className="space-y-4">
-                          <div className="aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative">
-                            <img
-                              src={getImageUrl(workshop.image) || FALLBACK_WORKSHOP_IMAGE}
-                              alt={workshop.title}
-                              className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
-                              onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
-                            />
-                            {/* Gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+                    {sortedAllWorkshops.map((workshop: WorkshopItem) => {
+                      const isPurchased = purchasedWorkshopIds.has(workshop._id);
+                      return (
+                        <motion.div
+                          key={workshop._id}
+                          variants={cardItemVariants}
+                          className="ui-card ui-card-hover flex flex-col justify-between space-y-0 relative group overflow-hidden"
+                        >
+                          <div className="space-y-4">
+                            <Link to={`/courses/${workshop._id}?type=workshop`} className="block aspect-video bg-slate-100 dark:bg-slate-900/60 rounded-2xl overflow-hidden relative group/img">
+                              <img
+                                src={getImageUrl(workshop.image) || FALLBACK_WORKSHOP_IMAGE}
+                                alt={workshop.title}
+                                className="w-full h-full object-contain group-hover/img:scale-110 transition-transform duration-500 ease-out"
+                                onError={(e) => handleImageError(e, FALLBACK_WORKSHOP_IMAGE)}
+                              />
+                              {/* Gradient overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
 
-                            {/* Price badge */}
-                            <div className="absolute top-3 right-3 px-3.5 py-1.5 bg-gradient-to-r from-brand-secondary to-amber-500 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-secondary/25 backdrop-blur-sm flex items-center gap-1.5">
-                              {(workshop.mrpPrice || 0) > 0 && (workshop.mrpPrice || 0) > (workshop.price || 0) ? (
-                                <>
-                                  <span className="line-through opacity-70 font-semibold">₹{workshop.mrpPrice}</span>
-                                  <span>₹{workshop.price}</span>
-                                </>
+                              {/* Price or Unlocked badge */}
+                              {isPurchased ? (
+                                <div className="absolute top-3 right-3 px-3 py-1 bg-emerald-500 text-white rounded-xl text-[11px] font-black shadow-lg backdrop-blur-sm flex items-center gap-1">
+                                  🔓 Unlocked
+                                </div>
                               ) : (
-                                <span>{workshop.price === 0 ? 'Free' : `₹${workshop.price || 0}`}</span>
+                                <div className="absolute top-3 right-3 px-3 py-1 bg-slate-900/80 text-white rounded-xl text-[11px] font-black shadow-lg backdrop-blur-sm flex items-center gap-1.5 border border-white/10">
+                                  <Lock size={11} className="text-amber-400 shrink-0" />
+                                  {(workshop.mrpPrice || 0) > 0 && (workshop.mrpPrice || 0) > (workshop.price || 0) ? (
+                                    <>
+                                      <span className="line-through opacity-70 font-semibold">₹{workshop.mrpPrice}</span>
+                                      <span>₹{workshop.price}</span>
+                                    </>
+                                  ) : (
+                                    <span>{workshop.price === 0 ? 'Free' : `₹${workshop.price || 0}`}</span>
+                                  )}
+                                </div>
                               )}
-                            </div>
 
-                            {/* Live indicator - top left */}
-                            <div className="absolute top-3 left-3 px-2.5 py-1 bg-red-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider shadow-md flex items-center gap-1.5 animate-pulse">
-                              <span className="w-1.5 h-1.5 rounded-full bg-white" /> Live Class
-                            </div>
+                              {/* Live indicator - top left */}
+                              <div className="absolute top-3 left-3 px-2.5 py-1 bg-red-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider shadow-md flex items-center gap-1.5 animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white" /> Live Class
+                              </div>
 
-                            {/* Duration badge - bottom left */}
-                            <div className="absolute bottom-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-white rounded-lg text-[10px] font-black shadow-md">
-                              {workshop.duration || 'Full Session'}
+                              {/* Duration badge - bottom left */}
+                              <div className="absolute bottom-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-white rounded-lg text-[10px] font-black shadow-md">
+                                {workshop.duration || 'Full Session'}
+                              </div>
+                            </Link>
+
+                            <div className="space-y-2.5 px-1">
+                              <Link to={`/courses/${workshop._id}?type=workshop`} className="block font-display font-black text-[15px] text-slate-800 dark:text-white line-clamp-1 leading-snug hover:text-brand-secondary transition-colors duration-300">
+                                {workshop.title}
+                              </Link>
+                              <p className="text-[11px] text-brand-secondary font-bold uppercase tracking-wider">
+                                {workshop.subTitle || 'Interactive Lecture Stream'}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                                {stripHtml(workshop.about || '')}
+                              </p>
                             </div>
                           </div>
 
-                          <div className="space-y-2.5 px-1">
-                            <h4 className="font-display font-black text-[15px] text-slate-800 dark:text-white line-clamp-1 leading-snug group-hover:text-brand-secondary transition-colors duration-300">
-                              {workshop.title}
-                            </h4>
-                            <p className="text-[11px] text-brand-secondary font-bold uppercase tracking-wider">
-                              {workshop.subTitle || 'Interactive Lecture Stream'}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                              {stripHtml(workshop.about || '')}
-                            </p>
+                          <div className="pt-4 border-t border-orange-100/20 dark:border-slate-800/30 px-1">
+                            {isPurchased ? (
+                              <div className="grid grid-cols-2 gap-2 w-full">
+                                <Link
+                                  to={`/courses/${workshop._id}?type=workshop`}
+                                  className="py-2.5 px-3 text-[11px] font-extrabold flex items-center justify-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all border border-slate-200 dark:border-slate-700 text-center"
+                                >
+                                  Details
+                                </Link>
+                                <Link
+                                  to={`/workshop-lms/${workshop._id}`}
+                                  className="py-2.5 px-3 text-[11px] font-black flex items-center justify-center gap-1.5 bg-brand-secondary hover:bg-brand-secondary/90 text-brand-dark rounded-xl transition-all shadow-md shadow-brand-secondary/20 text-center"
+                                >
+                                  <Play size={12} className="fill-current shrink-0" />
+                                  Classroom
+                                </Link>
+                              </div>
+                            ) : (
+                              <Link
+                                to={`/courses/${workshop._id}?type=workshop`}
+                                className="group/btn relative w-full py-3 text-xs font-black flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-brand-secondary dark:hover:bg-brand-secondary text-slate-700 dark:text-slate-200 hover:text-brand-dark rounded-xl transition-all duration-300 border border-slate-200/60 dark:border-slate-700/50 hover:border-brand-secondary hover:shadow-lg hover:shadow-brand-secondary/20"
+                              >
+                                <Lock size={13} className="shrink-0 text-amber-500 group-hover/btn:hidden transition-all" />
+                                <ArrowRight size={13} className="shrink-0 hidden group-hover/btn:block transition-all" />
+                                View Details & Unlock
+                              </Link>
+                            )}
                           </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-orange-100/20 dark:border-slate-800/30 px-1">
-                          <Link
-                            to={`/courses/${workshop._id}?type=workshop`}
-                            className="group/btn relative w-full py-3 text-xs font-black flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 hover:bg-brand-secondary dark:hover:bg-brand-secondary text-slate-700 dark:text-slate-200 hover:text-brand-dark rounded-xl transition-all duration-300 border border-slate-200/60 dark:border-slate-700/50 hover:border-brand-secondary hover:shadow-lg hover:shadow-brand-secondary/20"
-                          >
-                            <Lock size={13} className="shrink-0 group-hover/btn:hidden transition-all" />
-                            <ArrowRight size={13} className="shrink-0 hidden group-hover/btn:block transition-all" />
-                            Unlock Session
-                          </Link>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </motion.div>
                 ) : (
                   <div className="text-center py-16 bg-white dark:bg-card-dark border border-dashed rounded-3xl dark:border-slate-800 space-y-3">
-                    <span className="text-4xl block">🎉</span>
-                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">You have enrolled in all live workshops!</p>
-                    <p className="text-xs text-slate-400">Check back later for new sessions.</p>
+                    <span className="text-4xl block">📹</span>
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No Workshops Available</p>
+                    <p className="text-xs text-slate-400">Check back later for new live sessions.</p>
                   </div>
                 )}
               </div>
